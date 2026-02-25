@@ -226,3 +226,30 @@ body {
   color: var(--text-2);
   line-height: 1.4;
 }
+
+/* ─── Legal footer ───────────────────────────────────────────────────────── */
+.legal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 0 4px;
+}
+
+.legal-link {
+  font-size: 12px;
+  color: var(--text-3);
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-user-select: auto;
+  transition: color 0.15s;
+}
+
+.legal-link:active {
+  color: var(--text-2);
+}
+
+.legal-dot {
+  font-size: 12px;
+  color: var(--text-3);
+}
