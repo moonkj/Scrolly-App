@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <link rel="stylesheet" href="../Style.css">
+</head>
+<body>
+  <div class="onboarding">
+
+    <div class="brand">
+      <img src="../Icon.png" class="app-icon" alt="Scrolly">
+      <h1 class="app-name">Scrolly</h1>
+      <p class="tagline" data-i18n="tagline"></p>
+    </div>
+
+    <div class="steps">
+      <div class="step-card">
+        <div class="step-badge">1</div>
+        <div class="step-body">
+          <div class="step-title" data-i18n="step1_title"></div>
+          <div class="step-desc"  data-i18n="step1_desc"></div>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-badge">2</div>
+        <div class="step-body">
+          <div class="step-title" data-i18n="step2_title"></div>
+          <div class="step-desc"  data-i18n="step2_desc"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+  (function () {
+    var I18N = {
+      ko: {
+        tagline:     'Safari에서 웹페이지를 자동으로 스크롤합니다',
+        step1_title: 'Safari 확장 프로그램 활성화',
+        step1_desc:  '설정 → Safari → 확장 프로그램 → Scrolly를 켜주세요',
+        step2_title: 'Safari에서 실행',
+        step2_desc:  'Safari 주소창의 퍼즐 아이콘을 탭해 Scrolly를 시작하세요'
+      },
+      en: {
+        tagline:     'Auto-scroll any webpage in Safari',
+        step1_title: 'Enable Safari Extension',
+        step1_desc:  'Settings → Safari → Extensions → Turn on Scrolly',
+        step2_title: 'Open in Safari',
+        step2_desc:  "Tap the puzzle icon in Safari's address bar to start Scrolly"
+      },
+      ja: {
+        tagline:     'Safariで自動スクロールを楽しもう',
+        step1_title: 'Safari拡張機能を有効化',
+        step1_desc:  '設定 → Safari → 拡張機能 → Scrollyをオンにする',
+        step2_title: 'Safariで開く',
+        step2_desc:  'SafariのアドレスバーのパズルアイコンをタップしてScrollyを起動'
+      },
+      zh: {
+        tagline:     '在Safari中自动滚动网页',
+        step1_title: '启用Safari扩展',
+        step1_desc:  '设置 → Safari → 扩展 → 开启Scrolly',
+        step2_title: '在Safari中打开',
+        step2_desc:  '点击Safari地址栏的拼图图标启动Scrolly'
+      },
+      fr: {
+        tagline:     'Défilement automatique dans Safari',
+        step1_title: "Activer l'extension Safari",
+        step1_desc:  'Réglages → Safari → Extensions → Activer Scrolly',
+        step2_title: 'Ouvrir dans Safari',
+        step2_desc:  "Touchez l'icône puzzle dans la barre d'adresse Safari pour démarrer"
+      },
+      hi: {
+        tagline:     'Safari में वेबपेज अपने आप स्क्रॉल करें',
+        step1_title: 'Safari Extension चालू करें',
+        step1_desc:  'Settings → Safari → Extensions → Scrolly चालू करें',
+        step2_title: 'Safari में खोलें',
+        step2_desc:  'Safari के address bar में puzzle icon टैप करके शुरू करें'
+      }
+    };
+
+    var l = (navigator.language || 'en').toLowerCase();
+    var lang = l.startsWith('ko') ? 'ko'
+             : l.startsWith('ja') ? 'ja'
+             : l.startsWith('zh') ? 'zh'
+             : l.startsWith('fr') ? 'fr'
+             : l.startsWith('hi') ? 'hi'
+             : 'en';
+    var s = I18N[lang];
+
+    document.querySelectorAll('[data-i18n]').forEach(function (el) {
+      el.textContent = s[el.getAttribute('data-i18n')] || '';
+    });
+  }());
+  </script>
+</body>
+</html>

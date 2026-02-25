@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scrolly</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <!-- Header: logo only -->
+  <header>
+    <img src="data:image/png;base64,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" alt="Scrolly" class="logo">
+  </header>
+
+  <!-- Main toggle button -->
+  <section class="toggle-section">
+    <button id="toggleBtn" class="toggle-btn stopped">
+      <span class="btn-icon">▶︎</span>
+      <span class="btn-label">시작</span>
+    </button>
+    <div class="status-dot" id="statusDot"></div>
+  </section>
+
+  <!-- Speed -->
+  <section class="control-card" data-type="speed">
+    <div class="card-header">
+      <span class="card-title" data-i18n="speed_title">🚀 속도</span>
+      <span class="value-badge" id="speedValue">2x</span>
+    </div>
+    <input type="range" id="speedSlider"
+           min="1" max="20" step="1" value="3"
+           class="slider">
+    <div class="slider-labels">
+      <span data-i18n="slow">느림</span>
+      <span data-i18n="fast">빠름</span>
+    </div>
+  </section>
+
+  <!-- Direction -->
+  <section class="control-card" data-type="direction">
+    <div class="card-header">
+      <span class="card-title" data-i18n="dir_title">🧭 방향</span>
+    </div>
+    <div class="seg-control" id="directionControl">
+      <button class="seg-btn active" data-value="down" data-i18n="dir_down">↓ 아래</button>
+      <button class="seg-btn"        data-value="up"   data-i18n="dir_up">↑ 위</button>
+    </div>
+  </section>
+
+  <!-- Options -->
+  <section class="control-card" data-type="options">
+    <div class="card-header">
+      <span class="card-title" data-i18n="opt_title">⚙️ 옵션</span>
+    </div>
+
+    <div class="option-row">
+      <label class="option-label">
+        <span data-i18n="loop_label">루프 모드</span>
+        <small data-i18n="loop_desc">끝에서 처음으로 돌아감</small>
+      </label>
+      <label class="toggle-switch">
+        <input type="checkbox" id="loopToggle">
+        <span class="switch-track"></span>
+      </label>
+    </div>
+
+    <div class="option-row">
+      <label class="option-label">
+        <span data-i18n="autopause_label">자동 일시정지</span>
+        <small data-i18n="autopause_desc">터치 즉시 멈춤, 3초 후 재개</small>
+      </label>
+      <label class="toggle-switch">
+        <input type="checkbox" id="autoPauseToggle" checked>
+        <span class="switch-track"></span>
+      </label>
+    </div>
+  </section>
+
+  <!-- Timer -->
+  <section class="control-card" data-type="timer">
+    <div class="card-header">
+      <span class="card-title" data-i18n="timer_title">⏱ 타이머</span>
+      <span class="value-badge" id="timerValue">끔</span>
+    </div>
+    <input type="range" id="timerSlider"
+           min="0" max="60" step="5" value="0"
+           class="slider">
+    <div class="slider-labels">
+      <span data-i18n="timer_off">끔</span>
+      <span data-i18n="timer_60min">60분</span>
+    </div>
+  </section>
+
+  <!-- Gesture Shortcuts -->
+  <section class="control-card" data-type="gesture">
+    <div class="card-header">
+      <span class="card-title" data-i18n="gesture_title">👋 제스처 단축키</span>
+    </div>
+
+    <div class="option-row">
+      <label class="option-label">
+        <span data-i18n="gesture_label">제스처 단축키</span>
+        <small data-i18n="gesture_desc">더블탭: 일시정지/재개 · 트리플탭: 속도 초기화</small>
+      </label>
+      <label class="toggle-switch">
+        <input type="checkbox" id="gestureToggle" checked>
+        <span class="switch-track"></span>
+      </label>
+    </div>
+  </section>
+
+  <!-- Floating Widget -->
+  <section class="control-card" data-type="widget">
+    <div class="card-header">
+      <span class="card-title" data-i18n="widget_title">🎛 플로팅 위젯</span>
+    </div>
+
+    <div class="option-row">
+      <label class="option-label">
+        <span data-i18n="widget_label">미니 컨트롤 표시</span>
+        <small data-i18n="widget_desc">페이지 위에 드래그 가능한 위젯 표시</small>
+      </label>
+      <label class="toggle-switch">
+        <input type="checkbox" id="showWidgetToggle" checked>
+        <span class="switch-track"></span>
+      </label>
+    </div>
+  </section>
+
+  <script src="popup.js"></script>
+</body>
+</html>

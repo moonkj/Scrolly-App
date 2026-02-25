@@ -1,0 +1,132 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+  cursor: default;
+}
+
+:root {
+  color-scheme: light dark;
+  --bg:     #1C1C1E;
+  --card:   #2C2C2E;
+  --accent: #30D158;
+  --text:   #FFFFFF;
+  --text-2: rgba(235, 235, 245, 0.80);
+  --text-3: rgba(235, 235, 245, 0.38);
+  --radius: 16px;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg:     #F2F2F7;
+    --card:   #FFFFFF;
+    --text:   #1C1C1E;
+    --text-2: rgba(60, 60, 67, 0.60);
+    --text-3: rgba(60, 60, 67, 0.38);
+  }
+}
+
+html, body {
+  height: 100%;
+  font-family: -apple-system, 'SF Pro Display', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+}
+
+/* ─── Onboarding container ───────────────────────────────────────────────── */
+.onboarding {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+}
+
+/* ─── Brand section ──────────────────────────────────────────────────────── */
+.brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.app-icon {
+  width: 88px;
+  height: 88px;
+  border-radius: 20px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+}
+
+.app-name {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.tagline {
+  font-size: 15px;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+
+/* ─── Setup steps ────────────────────────────────────────────────────────── */
+.steps {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.step-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 16px;
+  border-left: 3.5px solid var(--accent);
+}
+
+.step-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.step-body {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-top: 3px;
+}
+
+.step-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.step-desc {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.5;
+}
