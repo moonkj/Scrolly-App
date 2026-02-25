@@ -158,3 +158,27 @@
 | 지원 URL (필수) | `https://github.com/moonkj/Scrolly-App/issues` |
 | 개인정보처리방침 URL (필수) | `https://github.com/moonkj/Scrolly-App/blob/main/privacy-policy.md` |
 | 마케팅 URL (선택) | `https://github.com/moonkj/Scrolly-App` |
+
+## 2026-02-25 (버그 수정 — 앱 화면 레이아웃 깨짐)
+
+### 버그 수정: 첫 로드 시 화면 반토막 현상 (Main.html, Style.css)
+
+#### 증상
+- 앱 처음 실행 시 메인 화면이 절반 너비로 깨져 보임
+- 이용약관/처리방침 들어갔다 나오면 정상으로 표시됨
+
+#### 원인
+- `<meta CSP>` 에서 `style-src`를 별도 지정하지 않아 `default-src 'self'`가 적용됨
+- `'unsafe-inline'`이 없으므로 HTML 인라인 스타일(`style="display:none"`)이 CSP에 차단됨
+- `#legal-view`의 `style="display:none"`이 무효화 → CSS 클래스 `display:flex`로 렌더링
+- `body { display:flex }` (row 방향) 상태에서 `#main-view`와 `#legal-view` 나란히 배치 → 반토막
+- JavaScript `element.style.display =` 는 CSSOM 직접 조작이라 CSP 영향 없음 → 들어갔다 나오면 정상
+
+#### 수정 (Style.css, Main.html)
+- `Style.css`: `.hidden { display: none !important; }` 클래스 추가
+- `Main.html`: `style="display:none"` 제거 → `class="legal-view hidden"` 방식 변경
+- `openPage()` / `closePage()`: `element.style.display` 대신 `classList.add/remove('hidden')` 사용
+
+### 법적 문구 업데이트 (Main.html)
+- 이용약관·처리방침 문의 항목: 개인 이메일 → **Apple App Store 개발자 연락처를 이용해주세요**
+- 이용약관 준거법: 서울중앙지방법원 문구 제거 → **본 약관은 대한민국 법률에 따라 해석됩니다.**
