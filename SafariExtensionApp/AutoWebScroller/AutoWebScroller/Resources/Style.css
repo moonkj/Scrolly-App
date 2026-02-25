@@ -28,8 +28,8 @@
   }
 }
 
-html, body {
-  height: 100%;
+html {
+  min-height: 100%;
   font-family: -apple-system, 'SF Pro Display', sans-serif;
   background: var(--bg);
   color: var(--text);
@@ -37,8 +37,8 @@ html, body {
 }
 
 body {
+  min-height: 100%;
   display: flex;
-  align-items: center;
   justify-content: center;
   padding: 32px 20px;
 }

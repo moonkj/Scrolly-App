@@ -1,6 +1,6 @@
 # AutoWebScroller – 개발 진행상황
 
-## 현재 버전: v1.2 (배포 완료)
+## 현재 버전: v1.3 (배포 완료)
 
 ### 프로젝트 구조
 - **확장 리소스**: `ios/SafariExtension/Resources/` ↔ `SafariExtensionApp/AutoWebScroller/AutoWebScroller Extension/Resources/` (동일)
@@ -110,7 +110,26 @@ npm test  # 64개 전부 통과
 
 ---
 
-## v1.3 후보 (미구현)
+## v1.3 변경 내역
+
+### 앱 온보딩 화면 리디자인 (Main.html / Style.css / ViewController.swift)
+- [x] 기능 소개 섹션: 2열 그리드 → iOS Settings 스타일 세로 리스트
+- [x] 아이콘: 컬러풀 이모티콘 → SF Symbol 스타일 흰색 SVG 라인아트
+  - 속도 조절: 반원 게이지 (호 중심 = 바늘 기준점)
+  - 방향 전환: 위/아래 독립 화살표
+  - 루프 모드: 순환 화살표 (refresh-cw)
+  - 자동 일시정지: 4손가락+손바닥 stroke 패스
+  - 타이머: 스톱워치 (원+손잡이+시침)
+  - 제스처 단축키: 손가락 캡슐 + 탭 리플 이중 원
+- [x] 아이콘 배경색: 원색 → 채도 낮은 다크 톤 (다크그린/네이비/다크브라운/다크레드/퍼플/다크슬레이트)
+- [x] 기능 헤더: small-caps 13px → `✦ 주요 기능` 볼드 20px
+- [x] 미구현 기능(사이트별 설정 저장) 항목 제거
+- [x] 스크롤 클리핑 수정: `ViewController.swift` `isScrollEnabled = false` → `true`
+- [x] CSS: `height: 100%` → `min-height: 100%`, `align-items: center` 제거
+
+---
+
+## v1.4 후보 (미구현)
 
 - [ ] 플로팅 위젯에 방향 전환 버튼 추가
 - [ ] 스크롤 프리셋 (독서모드, 뉴스모드, 웹툰모드)
