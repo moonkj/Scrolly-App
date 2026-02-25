@@ -182,3 +182,30 @@
 ### 법적 문구 업데이트 (Main.html)
 - 이용약관·처리방침 문의 항목: 개인 이메일 → **Apple App Store 개발자 연락처를 이용해주세요**
 - 이용약관 준거법: 서울중앙지방법원 문구 제거 → **본 약관은 대한민국 법률에 따라 해석됩니다.**
+
+## 2026-02-26 (코드 전체 버그 감사 — content.js)
+
+### 버그 4개 수정
+
+#### 1. resize 리스너 누적 (content.js)
+- **증상**: SPA 이동이 반복될수록 `_clampWidgetToViewport`가 N번 중복 호출됨 (성능 저하, 위젯 위치 보정 이중 적용)
+- **원인**: `createWidget()` 호출 시마다 `window.addEventListener('resize', ...)` 등록, 이전 리스너 미제거
+- **수정**: `removeEventListener` 후 `addEventListener` (`darkModeListener` 패턴과 동일)
+
+#### 2. 위젯 슬라이더 속도 변경이 localStorage에 저장 안 됨 (content.js)
+- **증상**: 위젯 슬라이더로 속도를 바꾸면 페이지 새로고침 후 이전 값으로 초기화됨
+- **원인**: `miniSlider` input 핸들러에서 `notifyState()`만 호출하고 `autoSaveSettings()` 누락
+- **수정**: `autoSaveSettings()` 추가
+
+#### 3. SPA 이동 후 widgetCollapsed 상태 불일치 (content.js)
+- **증상**: 위젯 접힌 상태에서 SPA 이동 후 위젯 재생성 시, 접기 버튼 첫 클릭이 아무 동작을 안 하는 것처럼 보임
+- **원인**: `widgetCollapsed` 모듈 변수가 이전 값(true) 유지 → 새로 만든 위젯(시각적으로 펼쳐짐)과 상태 불일치
+- **수정**: `createWidget()` 진입 시 `widgetCollapsed = false` 초기화
+
+#### 4. Wake Lock 중복 취득 시 이전 참조 누수 (content.js)
+- **증상**: 빠른 재호출 시 이전 lock 객체를 덮어써 해제 불가 상태 발생
+- **원인**: `acquireWakeLock()`에 이미 lock이 있을 때 재진입 방지 로직 없음
+- **수정**: `if (wakeLock) return` 가드 추가
+- **테스트**: release 이벤트 시뮬레이션 추가 (실제 브라우저 동작 반영)
+
+### 테스트: 103개 전부 통과
