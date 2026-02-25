@@ -22,9 +22,10 @@
   let userScrollTimer = null;
 
   // Gesture shortcuts
-  let tapCount    = 0;
-  let lastTapTime = 0;
-  let tapTimeout  = null;
+  let tapCount             = 0;
+  let lastTapTime          = 0;
+  let tapTimeout           = null;
+  let gestureInhibitUntil  = 0;  // inhibit gestures briefly after popup interaction
 
   // Content-aware
   let originalSpeed = null;
@@ -36,9 +37,10 @@
   let spaCheckTimer     = 0;     // throttle: SPA widget re-inject check every 120 frames
 
   // Widget
-  let widget          = null;
-  let widgetPlayBtn   = null;  // direct reference to avoid getElementById miss
-  let widgetCollapsed = false;
+  let widget              = null;
+  let widgetPlayBtn       = null;  // direct reference to avoid getElementById miss
+  let widgetCollapsed     = false;
+  let darkModeListener    = null;  // stored ref to prevent duplicate matchMedia listeners
   let isDragging      = false;
   let dragMoved       = false;
   let dragStartX      = 0, dragStartY  = 0;
@@ -140,7 +142,10 @@
     // SPA self-heal: throttled to every 120 frames (~2s) to avoid per-frame getElementById
     if (settings.showWidget && ++spaCheckTimer >= 120) {
       spaCheckTimer = 0;
-      if (!document.getElementById('__aws_widget__')) createWidget();
+      if (!document.getElementById('__aws_widget__')) {
+        widget = null; widgetPlayBtn = null; // reset stale JS refs before recreating
+        createWidget();
+      }
     }
 
     if (!(userScrolling && settings.autoPause)) {
@@ -156,10 +161,14 @@
 
       if (settings.loop) {
         const st = scrollTarget;
-        if (settings.direction === 'down' && st.scrollTop + st.clientHeight >= st.scrollHeight - 2) {
-          st.scrollTop = 0;
-        } else if (settings.direction === 'up' && st.scrollTop <= 2) {
-          st.scrollTop = st.scrollHeight;
+        const isRoot     = st === document.documentElement;
+        const scrollTop  = isRoot ? window.scrollY    : st.scrollTop;
+        const clientH    = isRoot ? window.innerHeight : st.clientHeight;
+        const scrollH    = st.scrollHeight;
+        if (settings.direction === 'down' && scrollTop + clientH >= scrollH - 2) {
+          isRoot ? window.scrollTo(0, 0) : (st.scrollTop = 0);
+        } else if (settings.direction === 'up' && scrollTop <= 2) {
+          isRoot ? window.scrollTo(0, scrollH) : (st.scrollTop = scrollH);
         }
       }
     }
@@ -248,6 +257,7 @@
   function handleGestureTap(e) {
     if (!settings.gestureShortcuts) return;
     if (widget && widget.contains(e.target)) return;
+    if (Date.now() < gestureInhibitUntil) return; // ignore spurious touches after popup interaction
 
     const now = Date.now();
     if (now - lastTapTime > 500) tapCount = 0;
@@ -284,7 +294,10 @@
     widgetPlayBtn = null;
 
     let savedPos = null;
-    try { savedPos = JSON.parse(localStorage.getItem(WIDGET_POS_KEY)); } catch (_) {}
+    try {
+      const raw = JSON.parse(localStorage.getItem(WIDGET_POS_KEY));
+      if (raw && isFinite(raw.x) && isFinite(raw.y)) savedPos = raw;
+    } catch (_) {}
 
     widget    = document.createElement('div');
     widget.id = '__aws_widget__';
@@ -379,7 +392,10 @@
 
     document.body.appendChild(widget);
 
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyWidgetTheme);
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    if (darkModeListener) mq.removeEventListener('change', darkModeListener);
+    darkModeListener = applyWidgetTheme;
+    mq.addEventListener('change', darkModeListener);
     window.addEventListener('resize', _clampWidgetToViewport);
   }
 
@@ -508,7 +524,36 @@
         break;
 
       case 'updateSettings': {
+        const prevDirection = settings.direction;
         Object.assign(settings, message);
+        // Any popup interaction: inhibit gesture shortcuts for 800ms to avoid
+        // spurious double-tap from iOS touch-through on popup open/close
+        gestureInhibitUntil = Date.now() + 800;
+        if (message.direction !== undefined && message.direction !== prevDirection) {
+          // Direction changed — cancel autoPause so it takes effect immediately
+          userScrolling = false;
+          clearTimeout(userScrollTimer);
+          // Pre-position scroll to the correct edge so loop doesn't look like wrong direction
+          if (settings.loop && isScrolling && scrollTarget) {
+            const st     = scrollTarget;
+            const isRoot = st === document.documentElement;
+            const stTop  = isRoot ? window.scrollY    : st.scrollTop;
+            const stCliH = isRoot ? window.innerHeight : st.clientHeight;
+            const stScrH = st.scrollHeight;
+            if (settings.direction === 'up' && stTop <= 2) {
+              isRoot ? window.scrollTo(0, stScrH) : (st.scrollTop = stScrH);
+            } else if (settings.direction === 'down' && stTop + stCliH >= stScrH - 2) {
+              isRoot ? window.scrollTo(0, 0) : (st.scrollTop = 0);
+            }
+          }
+        }
+        // Restart timer if timerMins changed during active scroll
+        if (message.timerMins !== undefined && isScrolling) {
+          clearTimeout(timerTimeout);
+          timerTimeout = settings.timerMins > 0
+            ? setTimeout(stopScroll, settings.timerMins * 60 * 1000)
+            : null;
+        }
         autoSaveSettings();
         updateWidgetUI();
         notifyState();

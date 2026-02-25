@@ -1,136 +1,53 @@
-# AutoWebScroller – 개발 진행상황
+# AutoWebScroller – 버그 수정 기록
 
-## 현재 버전: v1.3 (배포 완료)
+## 2026-02-25
 
-### 프로젝트 구조
-- **확장 리소스**: `ios/SafariExtension/Resources/` ↔ `SafariExtensionApp/AutoWebScroller/AutoWebScroller Extension/Resources/` (동일)
-- **배포 방식**: SafariExtensionApp Xcode 프로젝트 자동 서명 → `xcrun devicectl device install app`
-- **테스트**: Jest 64개 전부 통과 (`npm test`)
+### 버그 수정 (content.js)
 
----
+#### 1. iOS Safari 루프 옵션 미작동 (iPad)
+- **증상**: 루프 옵션을 켜도 끝에서 처음으로 돌아가지 않음
+- **원인**: `document.documentElement.scrollTop`이 iOS Safari에서 `scrollBy()` 직후 즉시 업데이트되지 않아 루프 조건이 항상 false로 평가
+- **수정**: 루프 조건에서 `window.scrollY` / `window.innerHeight` 사용, 위치 초기화 시 `window.scrollTo()` 사용
 
-## 구현 완료 기능
+#### 2. 방향 변경 시 스크롤 멈춤 (iPhone)
+- **증상**: 팝업에서 방향을 아래→위로 변경하면 스크롤이 멈춤
+- **원인**: iOS에서 팝업 open/close 시 터치 이벤트가 content page로 전달 → `autoPause` 발동 (userScrolling=true → 3초 정지)
+- **수정**: `updateSettings`에서 방향 변경 시 autoPause 즉시 초기화 (`userScrolling=false`, `clearTimeout`)
 
-### 스크롤 엔진 (content.js)
-- [x] `requestAnimationFrame` 기반 스크롤 루프
-- [x] 델타타임 방식 (프레임레이트 무관하게 px/s 일정)
-- [x] 2차 속도 커브: `speed² × 9` px/s (speed 1→9px/s, speed 10→900px/s)
-- [x] 스크롤 대상 자동 감지 (viewport 중심에서 scrollable 요소 탐색)
-- [x] 루프 모드 (끝→처음, 위→끝 자동 복귀)
-- [x] 타이머 자동 정지 (0~60분, 5분 단위)
-- [x] `will-change: scroll-position` 힌트로 렌더링 최적화
+#### 3. 방향 변경 후 다운 방향처럼 보이는 문제
+- **증상**: 위 방향으로 변경 후 루프 활성화 상태에서 페이지가 갑자기 아래로 튐
+- **원인**: RAF 루프에서 방향='위' + scrollTop=0 조건 감지 → 즉시 최하단으로 점프, 사용자는 이를 방향이 다운으로 바뀐 것으로 인식
+- **수정**: `updateSettings`에서 방향 변경 시 올바른 엣지로 즉시 pre-position (자연스러운 전환)
 
-### 자동 일시정지
-- [x] `touchstart` → 즉시 일시정지
-- [x] `touchend` → 3초 후 재개
-- [x] `wheel` 이벤트도 감지
+#### 4. 팝업 조작 후 제스처 단축키 오발동
+- **증상**: 팝업에서 설정 변경 후 더블탭 제스처가 실수로 `toggleScroll()` 호출
+- **원인**: iOS 팝업 close 시 touch 이벤트가 content page로 전달 → 제스처 카운터 증가 → 더블탭 인식
+- **수정**: `updateSettings` 수신 후 800ms 동안 제스처 단축키 비활성화 (`gestureInhibitUntil`)
 
-### 제스처 단축키
-- [x] 더블탭 → 스크롤 토글 (일시정지/재개)
-- [x] 트리플탭 → 속도 2x로 초기화
-- [x] 500ms 창 내 탭 카운트, `clearTimeout+setTimeout` 패턴으로 배타적 처리
+#### 5. 위젯/팝업 플레이 버튼 상태 불일치
+- **증상**: 팝업은 재생 중으로 표시되는데 플로팅 위젯은 정지 상태로 표시
+- **원인 A**: 위 4번 문제로 제스처 더블탭이 scroll을 멈추는데 팝업이 즉시 반영 안 됨
+- **원인 B**: SPA 페이지 이동 시 위젯 DOM이 제거되어도 JS 참조(widget, widgetPlayBtn)가 stale 상태로 남아 상태 업데이트가 유령 DOM에 적용됨
+- **수정**: SPA 감지(doScroll 내)에서 DOM 없을 시 widget/widgetPlayBtn 참조도 함께 초기화
 
-### 콘텐츠 인식 속도 (content.js)
-- [x] 광고 요소 감지 시 속도 3배 증가
-- [x] 이미지 3개 이상 뷰포트 진입 시 속도 0.5배 감소
-- [x] 해당 구간 벗어나면 원래 속도 복원
-- [x] 60프레임마다 스로틀 처리 (성능 최적화)
-- ⚠️ 팝업 UI 없음 (켜기/끄기 토글 미구현 — contentAware 기본값 false)
+### 코드 전체 버그 감사 후 추가 수정 (content.js, popup.js)
 
-### 플로팅 위젯 (content.js)
-- [x] `div#__aws_widget__` DOM 주입
-- [x] 수직 미니 슬라이더 (1~20x)
-- [x] 시작/정지 버튼 (색상으로 상태 구분)
-- [x] 접기(–/+) 버튼
-- [x] touch 드래그, viewport 경계 클램프
-- [x] 위치 `localStorage(aws_widget_pos_<hostname>)` 저장/복원
-- [x] SPA 네비게이션 후 자동 재주입 (120프레임마다 DOM 체크 + history 인터셉트)
-- [x] 다크/라이트 모드 동적 테마 (`window.matchMedia`)
+#### 6. 타이머 중복/누락 — timerMins 변경 시 기존 타이머 미정리
+- **증상**: 스크롤 중 타이머를 5분→10분으로 변경해도 원래 타이머(5분)가 계속 작동 → 예상보다 일찍 스크롤 종료
+- **원인**: `updateSettings` 핸들러에서 `timerMins` 변경 시 기존 `timerTimeout`을 clear하지 않음
+- **수정**: `updateSettings`에서 `timerMins` 변경 감지 시 기존 타이머 해제 후 새 값으로 재시작
 
-### 팝업 UI (popup.js / popup.html)
-- [x] 시작/정지 버튼 + 상태 표시 도트 (애니메이션)
-- [x] 속도 슬라이더 (1~20x)
-- [x] 방향 세그먼트 버튼 (↓ 아래 / ↑ 위)
-- [x] 루프 모드 토글
-- [x] 자동 일시정지 토글
-- [x] 타이머 슬라이더 (0~60분)
-- [x] 제스처 단축키 토글
-- [x] 플로팅 위젯 토글
-- [x] 다크/라이트 모드 자동 전환 (`popup.css`)
+#### 7. matchMedia 다크모드 리스너 누적
+- **증상**: SPA 페이지 이동이 반복될수록 `applyWidgetTheme`이 N번 중복 호출됨 (성능 저하)
+- **원인**: `createWidget()` 호출 시마다 `matchMedia` change 리스너를 새로 추가, 이전 리스너 미제거
+- **수정**: `darkModeListener` 변수에 리스너 참조 보존 → 재등록 전 `removeEventListener` 호출
 
-### 다국어 (popup.js)
-- [x] 한국어 (`ko`)
-- [x] 영어 (`en`)
-- [x] 일본어 (`ja`)
-- [x] 중국어 (`zh`)
-- [x] 프랑스어 (`fr`)
-- [x] 힌디어 (`hi`)
-- [x] 시스템 언어 자동 감지 (`navigator.language`)
+#### 8. 위젯 위치 복구 시 NaN 방지
+- **증상**: localStorage 값이 손상된 경우(`{x: null}` 등) 위젯이 잘못된 위치에 나타남
+- **원인**: `savedPos.x/y` 유효성 검사 없이 CSS 직접 적용 → `Math.max(0, NaN)` = `NaN` → CSS 무효값
+- **수정**: `isFinite()` 검증 추가 — x, y 모두 유한수일 때만 저장 위치 사용
 
-### 설정 저장 (content.js)
-- [x] `updateSettings` 수신 시 `localStorage(aws_settings)` 자동 저장
-- [x] 페이지 로드 시 자동 불러오기
-- ⚠️ 글로벌 키 사용 (사이트별 분리 없음, hostname 구분 미적용)
-
-### 메시지 아키텍처
-- [x] WebExtension API (`browser.*`) 사용
-- [x] popup → content: `browser.tabs.sendMessage`
-- [x] content → popup: `browser.runtime.sendMessage` → background 릴레이
-- [x] background: `stateChanged` 메시지만 릴레이 (순수 중계, 무상태)
-
-### SPA 대응
-- [x] `history.pushState` / `replaceState` 인터셉트
-- [x] `popstate` 이벤트 감지
-- [x] 네비게이션 시 스크롤 중지 + 300ms 후 위젯 재주입
-
----
-
-## 배포 방법
-
-```bash
-# Xcode에서 빌드 후 커맨드라인 설치
-xcrun devicectl device install app \
-  -d "835A5E84-05B4-520C-B52C-E69BBEE38FED" \
-  "~/Library/Developer/Xcode/DerivedData/AutoWebScroller-***/Build/Products/Debug-iphoneos/AutoWebScroller.app"
-```
-
----
-
-## 테스트 현황
-
-```bash
-npm test  # 64개 전부 통과
-```
-
-| 파일 | 테스트 수 |
-|------|----------|
-| background.test.js | 5개 |
-| popup.test.js | 약 30개 |
-| content.test.js | 약 29개 |
-
----
-
-## v1.3 변경 내역
-
-### 앱 온보딩 화면 리디자인 (Main.html / Style.css / ViewController.swift)
-- [x] 기능 소개 섹션: 2열 그리드 → iOS Settings 스타일 세로 리스트
-- [x] 아이콘: 컬러풀 이모티콘 → SF Symbol 스타일 흰색 SVG 라인아트
-  - 속도 조절: 반원 게이지 (호 중심 = 바늘 기준점)
-  - 방향 전환: 위/아래 독립 화살표
-  - 루프 모드: 순환 화살표 (refresh-cw)
-  - 자동 일시정지: 4손가락+손바닥 stroke 패스
-  - 타이머: 스톱워치 (원+손잡이+시침)
-  - 제스처 단축키: 손가락 캡슐 + 탭 리플 이중 원
-- [x] 아이콘 배경색: 원색 → 채도 낮은 다크 톤 (다크그린/네이비/다크브라운/다크레드/퍼플/다크슬레이트)
-- [x] 기능 헤더: small-caps 13px → `✦ 주요 기능` 볼드 20px
-- [x] 미구현 기능(사이트별 설정 저장) 항목 제거
-- [x] 스크롤 클리핑 수정: `ViewController.swift` `isScrollEnabled = false` → `true`
-- [x] CSS: `height: 100%` → `min-height: 100%`, `align-items: center` 제거
-
----
-
-## v1.4 후보 (미구현)
-
-- [ ] 플로팅 위젯에 방향 전환 버튼 추가
-- [ ] 스크롤 프리셋 (독서모드, 뉴스모드, 웹툰모드)
-- [ ] 멀티탭 상태 동기화
+#### 9. popup.js Promise 미처리
+- **증상**: `sendMessage()` 실패 시 콘솔에 unhandled promise rejection 경고
+- **원인**: `browser.tabs.sendMessage()` 반환 Promise에 `.catch()` 없음
+- **수정**: `.catch(() => {})` 추가

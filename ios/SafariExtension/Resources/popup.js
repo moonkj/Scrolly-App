@@ -203,7 +203,7 @@
     try {
       const tabs = await browser.tabs.query({ active: true, currentWindow: true });
       if (tabs.length > 0) {
-        browser.tabs.sendMessage(tabs[0].id, { name, message: message || {} });
+        browser.tabs.sendMessage(tabs[0].id, { name, message: message || {} }).catch(() => {});
       }
     } catch (e) {
       console.warn('[AutoWebScroller] send error:', e);
