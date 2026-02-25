@@ -133,11 +133,19 @@
       </div>
     </div>
 
-    <!-- Legal footer -->
-    <div class="legal-footer">
-      <button class="legal-link" onclick="openPage('terms')" data-i18n="terms"></button>
-      <span class="legal-dot">·</span>
-      <button class="legal-link" onclick="openPage('privacy')" data-i18n="privacy"></button>
+    <!-- Legal section -->
+    <div class="legal-list-section">
+      <div class="legal-list-header" data-i18n="legal_title"></div>
+      <div class="legal-list">
+        <button class="legal-row" onclick="window.openPage('privacy')">
+          <span data-i18n="privacy"></span>
+          <span class="legal-chevron">&#8250;</span>
+        </button>
+        <button class="legal-row" onclick="window.openPage('terms')">
+          <span data-i18n="terms"></span>
+          <span class="legal-chevron">&#8250;</span>
+        </button>
+      </div>
     </div>
 
   </div>
@@ -175,6 +183,7 @@
         feat_save_desc:       '사이트마다 다른 속도/옵션 기억',
         feat_gesture_title:   '제스처 단축키',
         feat_gesture_desc:    '더블탭 일시정지, 트리플탭 속도 초기화',
+        legal_title:          '법적 정보',
         terms:                '이용약관',
         privacy:              '개인정보처리방침'
       },
@@ -199,6 +208,7 @@
         feat_save_desc:       'Remembers speed & options per site',
         feat_gesture_title:   'Gesture Shortcuts',
         feat_gesture_desc:    'Double-tap pause, triple-tap reset speed',
+        legal_title:          'Legal',
         terms:                'Terms of Service',
         privacy:              'Privacy Policy'
       },
@@ -223,6 +233,7 @@
         feat_save_desc:       'サイトごとに速度・設定を記憶',
         feat_gesture_title:   'ジェスチャーショートカット',
         feat_gesture_desc:    'ダブルタップで一時停止、トリプルタップでリセット',
+        legal_title:          '法的情報',
         terms:                '利用規約',
         privacy:              'プライバシーポリシー'
       },
@@ -247,6 +258,7 @@
         feat_save_desc:       '每个网站记住不同的速度和选项',
         feat_gesture_title:   '手势快捷键',
         feat_gesture_desc:    '双击暂停，三击重置速度',
+        legal_title:          '法律信息',
         terms:                '服务条款',
         privacy:              '隐私政策'
       },
@@ -271,6 +283,7 @@
         feat_save_desc:       'Mémorise vitesse et options par site',
         feat_gesture_title:   'Raccourcis gestuels',
         feat_gesture_desc:    'Double tap pause, triple tap réinitialise',
+        legal_title:          'Informations légales',
         terms:                "Conditions d'utilisation",
         privacy:              'Politique de confidentialité'
       },
@@ -295,6 +308,7 @@
         feat_save_desc:       'हर साइट की अलग स्पीड/विकल्प याद रखता है',
         feat_gesture_title:   'जेस्चर शॉर्टकट',
         feat_gesture_desc:    'डबल टैप पॉज़, ट्रिपल टैप स्पीड रीसेट',
+        legal_title:          'कानूनी जानकारी',
         terms:                'सेवा की शर्तें',
         privacy:              'गोपनीयता नीति'
       }
@@ -367,7 +381,7 @@
     var legalTitle = document.getElementById('legal-title');
     var legalBody  = document.getElementById('legal-body');
 
-    function openPage(type) {
+    window.openPage = function(type) {
       var sections = (LEGAL[lang] || LEGAL.en)[type];
       legalTitle.textContent = s[type] || type;
       legalBody.innerHTML = sections.map(function(sec) {
@@ -376,13 +390,13 @@
       mainView.style.display  = 'none';
       legalView.style.display = 'flex';
       window.scrollTo(0, 0);
-    }
+    };
 
-    function closePage() {
+    window.closePage = function() {
       legalView.style.display = 'none';
       mainView.style.display  = 'flex';
       window.scrollTo(0, 0);
-    }
+    };
   }());
   </script>
 </body>
