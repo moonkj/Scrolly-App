@@ -58,6 +58,7 @@
   async function acquireWakeLock() {
     try {
       if (!('wakeLock' in navigator)) return;
+      if (wakeLock) return;  // already held — avoid duplicate acquisition & reference leak
       wakeLock = await navigator.wakeLock.request('screen');
       wakeLock.addEventListener('release', () => { wakeLock = null; });
     } catch (_) {}
@@ -338,6 +339,7 @@
 
   function createWidget() {
     if (widget) return;
+    widgetCollapsed = false;  // reset: new widget is always created in expanded state
 
     // Remove any stale widget left by a previous script instance
     const stale = document.getElementById('__aws_widget__');
@@ -414,6 +416,7 @@
       e.stopPropagation();
       settings.speed = parseInt(miniSlider.value, 10);
       speedLabel.textContent = `${settings.speed}x`;
+      autoSaveSettings();  // persist speed change made via widget slider
       notifyState();
     });
     miniSlider.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
@@ -447,6 +450,8 @@
     if (darkModeListener) mq.removeEventListener('change', darkModeListener);
     darkModeListener = applyWidgetTheme;
     mq.addEventListener('change', darkModeListener);
+    // Remove before re-adding to prevent duplicate resize listeners on SPA re-create
+    window.removeEventListener('resize', _clampWidgetToViewport);
     window.addEventListener('resize', _clampWidgetToViewport);
   }
 

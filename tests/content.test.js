@@ -901,6 +901,14 @@ describe('wake lock', () => {
     const listener = loadContent();
     sendMsg(listener, 'start');
     await Promise.resolve();
+
+    // Simulate browser auto-releasing the lock (e.g. tab hidden):
+    // The release callback registered via wakeLock.addEventListener('release', cb) must fire
+    // first so that wakeLock = null, allowing re-acquisition on visibility restored.
+    const sentinel = await navigator.wakeLock.request.mock.results[0].value;
+    const releaseCall = sentinel.addEventListener.mock.calls.find(([ev]) => ev === 'release');
+    if (releaseCall) releaseCall[1]();  // invoke the release handler → wakeLock = null
+
     navigator.wakeLock.request.mockClear();
 
     // Simulate page becoming visible again (e.g. after tab switch)
