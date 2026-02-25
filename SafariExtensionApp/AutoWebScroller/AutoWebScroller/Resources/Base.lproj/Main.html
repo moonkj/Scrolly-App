@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="../Style.css">
 </head>
 <body>
-  <div class="onboarding">
+  <div id="main-view" class="onboarding">
 
     <div class="brand">
       <img src="../Icon.png" class="app-icon" alt="Scrolly">
@@ -135,13 +135,20 @@
 
     <!-- Legal footer -->
     <div class="legal-footer">
-      <a href="https://github.com/moonkj/Scrolly-App/blob/main/terms-of-service.md"
-         class="legal-link" data-i18n="terms"></a>
+      <button class="legal-link" onclick="openPage('terms')" data-i18n="terms"></button>
       <span class="legal-dot">·</span>
-      <a href="https://github.com/moonkj/Scrolly-App/blob/main/privacy-policy.md"
-         class="legal-link" data-i18n="privacy"></a>
+      <button class="legal-link" onclick="openPage('privacy')" data-i18n="privacy"></button>
     </div>
 
+  </div>
+
+  <!-- Legal page (terms / privacy) — shown in-app, no Safari needed -->
+  <div id="legal-view" class="legal-view" style="display:none">
+    <div class="legal-header">
+      <button class="legal-back-btn" onclick="closePage()">&#8249;</button>
+      <span class="legal-page-title" id="legal-title"></span>
+    </div>
+    <div class="legal-body" id="legal-body"></div>
   </div>
 
   <script>
@@ -305,6 +312,77 @@
     document.querySelectorAll('[data-i18n]').forEach(function (el) {
       el.textContent = s[el.getAttribute('data-i18n')] || '';
     });
+
+    // ─── Legal page content ──────────────────────────────────────────────────
+    var LEGAL = {
+      ko: {
+        privacy: [
+          ['1. 수집하는 개인정보', 'Scrolly는 어떠한 개인정보도 수집하지 않습니다. 이름·이메일·위치·기기 식별자·사용 통계 어느 것도 수집하지 않습니다.'],
+          ['2. 로컬 저장소', '설정(속도·방향·루프·타이머 등)과 위젯 위치만 기기 내부(Safari 확장의 localStorage)에 저장됩니다. 이 데이터는 기기를 벗어나지 않으며, 개발자를 포함한 누구도 접근할 수 없습니다.'],
+          ['3. 네트워크 통신', 'Scrolly는 외부 서버와 일절 통신하지 않습니다. 인터넷 연결 없이도 완전하게 동작합니다.'],
+          ['4. 제3자 서비스', '광고 네트워크·분석 도구(Google Analytics 등)·소셜 로그인·외부 결제 SDK를 일절 사용하지 않습니다.'],
+          ['5. 아동 보호', '만 14세 미만 아동의 개인정보를 의도적으로 수집하지 않습니다.'],
+          ['6. 방침 변경', '변경 시 앱 업데이트 또는 이 화면을 통해 공지합니다.'],
+          ['7. 문의', 'imurmkj@naver.com'],
+        ],
+        terms: [
+          ['1. 라이선스', '개발자는 귀하에게 앱의 비독점적·양도 불가·개인 사용 라이선스를 부여합니다. 앱을 복사·수정·배포·판매·역공학하거나 파생물을 만들어서는 안 됩니다.'],
+          ['2. 사용자 책임', '합법적인 목적으로만 사용하며, 타인의 저작물을 무단으로 스크래핑하는 목적으로 사용하지 않습니다. 사용 결과에 대한 책임은 귀하에게 있습니다.'],
+          ['3. 지식재산권', '앱 및 관련 콘텐츠(코드·디자인·로고 포함)의 모든 권리는 개발자에게 귀속됩니다. 본 약관은 이를 귀하에게 이전하지 않습니다.'],
+          ['4. 보증 부인', '앱은 "있는 그대로(AS IS)" 제공됩니다. 개발자는 특정 목적 적합성·오류 없는 동작·모든 사이트 호환성을 보증하지 않습니다.'],
+          ['5. 책임 제한', '관련 법령이 허용하는 범위에서, 개발자는 앱 사용으로 인한 간접·우발적·결과적 손해에 대해 책임을 지지 않습니다.'],
+          ['6. Apple과의 관계', '본 약관은 귀하와 개발자 간의 계약입니다. Apple Inc.는 앱 유지·보수 의무가 없으며, 이 약관의 당사자가 아닙니다.'],
+          ['7. 준거법', '대한민국 법률에 따르며, 분쟁 발생 시 서울중앙지방법원을 제1심 관할 법원으로 합니다.'],
+          ['8. 문의', 'imurmkj@naver.com'],
+        ],
+      },
+      en: {
+        privacy: [
+          ['1. Information We Collect', 'Scrolly collects no personal information whatsoever — no names, emails, location data, device identifiers, or usage statistics.'],
+          ['2. Local Storage', 'Only your scroll settings (speed, direction, loop, timer, etc.) and widget position are stored, exclusively on your device. This data never leaves your device and is inaccessible to anyone, including the developer.'],
+          ['3. Network Communication', 'Scrolly makes zero network requests. It works fully offline without an internet connection.'],
+          ['4. Third-Party Services', 'No advertising networks, analytics tools (Google Analytics, etc.), social logins, or third-party payment SDKs are used.'],
+          ['5. Children\'s Privacy', 'We do not knowingly collect personal information from children under 13.'],
+          ['6. Policy Changes', 'Changes will be announced via app updates or this screen.'],
+          ['7. Contact', 'imurmkj@naver.com'],
+        ],
+        terms: [
+          ['1. License Grant', 'You are granted a non-exclusive, non-transferable, personal license to use the App. You may not copy, modify, distribute, sell, sublicense, or reverse-engineer the App.'],
+          ['2. User Responsibilities', 'Use the App only for lawful purposes. Do not use it to scrape or harvest copyrighted content without authorization. You are responsible for all consequences of your use.'],
+          ['3. Intellectual Property', 'All rights in the App and its related content (code, design, logo) belong to the Developer. These Terms do not transfer any ownership to you.'],
+          ['4. Disclaimer of Warranties', 'The App is provided "AS IS" with no warranties — express or implied — regarding fitness for purpose, error-free operation, or compatibility with all websites.'],
+          ['5. Limitation of Liability', 'To the maximum extent permitted by applicable law, the Developer is not liable for any indirect, incidental, or consequential damages arising from use of the App.'],
+          ['6. Relationship with Apple', 'These Terms are solely between you and the Developer. Apple Inc. has no obligation to provide maintenance or support for the App, and is not a party to this agreement.'],
+          ['7. Governing Law', 'These Terms are governed by the laws of the Republic of Korea. Disputes are subject to the Seoul Central District Court.'],
+          ['8. Contact', 'imurmkj@naver.com'],
+        ],
+      },
+    };
+    // Non-KO languages default to English content
+    ['ja','zh','fr','hi'].forEach(function(l) { LEGAL[l] = LEGAL.en; });
+
+    // ─── Page navigation ─────────────────────────────────────────────────────
+    var mainView  = document.getElementById('main-view') || document.querySelector('.onboarding');
+    var legalView = document.getElementById('legal-view');
+    var legalTitle = document.getElementById('legal-title');
+    var legalBody  = document.getElementById('legal-body');
+
+    function openPage(type) {
+      var sections = (LEGAL[lang] || LEGAL.en)[type];
+      legalTitle.textContent = s[type] || type;
+      legalBody.innerHTML = sections.map(function(sec) {
+        return '<div class="legal-section"><h3>' + sec[0] + '</h3><p>' + sec[1] + '</p></div>';
+      }).join('');
+      mainView.style.display  = 'none';
+      legalView.style.display = 'flex';
+      window.scrollTo(0, 0);
+    }
+
+    function closePage() {
+      legalView.style.display = 'none';
+      mainView.style.display  = 'flex';
+      window.scrollTo(0, 0);
+    }
   }());
   </script>
 </body>

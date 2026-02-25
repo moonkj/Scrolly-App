@@ -23,18 +23,6 @@ class ViewController: UIViewController, WKNavigationDelegate, WKScriptMessageHan
         self.webView.loadFileURL(Bundle.main.url(forResource: "Main", withExtension: "html")!, allowingReadAccessTo: Bundle.main.resourceURL!)
     }
 
-    // Open external https:// links (Terms / Privacy Policy) in Safari
-    func webView(_ webView: WKWebView,
-                 decidePolicyFor navigationAction: WKNavigationAction,
-                 decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-        if let url = navigationAction.request.url, url.scheme == "https" {
-            UIApplication.shared.open(url)
-            decisionHandler(.cancel)
-        } else {
-            decisionHandler(.allow)
-        }
-    }
-
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         // Override point for customization.
     }
