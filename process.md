@@ -104,3 +104,57 @@
   - `stopScroll()` 호출
 - **영향 범위**: `startScroll()` 및 `updateSettings` 내 타이머 재시작 로직 두 곳 모두 수정
 - **테스트**: 2개 추가 (stateChanged timerMins=0 검증, localStorage 저장 검증) → 103개 통과
+
+## 2026-02-25 (출시 준비 — 법적 문서 + App Store 문서화)
+
+### 신규 파일 작성
+
+#### document.md — App Store 출시 전체 문서
+- 앱 이름/부제목/홍보 문구 (한/영)
+- 앱 설명 전문 (한/영)
+- 키워드 (한/영, 각 100자 이내)
+- 버전 업데이트 내역 v1.0 ~ v1.3 (한/영)
+- 스크린샷 캡션 5장 (한/영)
+- 앱 미리보기 영상 30초 스크립트
+- 개인정보 처리 항목 (수집 없음 명시)
+- 지원 URL / 마케팅 URL / 개인정보처리방침 URL 확정값 기재
+- 심사 메모 (영문, 테스터 안내 포함)
+- 앱 아이콘 규격 5종
+
+#### privacy-policy.md — 개인정보처리방침 (한/영)
+- 수집 데이터 없음 명시
+- 로컬 저장소만 사용 (기기 외부 전송 없음)
+- 네트워크 통신 없음 (완전 오프라인)
+- 제3자 서비스 없음
+- 아동 보호, 방침 변경, 문의처 포함
+- **App Store Connect 등록 URL**: `https://github.com/moonkj/Scrolly-App/blob/main/privacy-policy.md`
+
+#### terms-of-service.md — 이용약관 (한/영)
+- 라이선스, 사용자 책임, 지식재산권
+- 보증 부인(AS IS), 책임 제한
+- Apple과의 관계 (Apple은 당사자 아님 명시)
+- 준거법: 대한민국 / 서울중앙지방법원
+
+### 앱 UI 변경 — 법적 화면 인앱 표시 (Main.html, Style.css, ViewController.swift)
+
+#### 변경 전
+- 이용약관/개인정보처리방침 링크 클릭 → Safari 앱으로 GitHub 페이지 열기
+
+#### 변경 후
+- 앱 내부에서 인라인으로 표시 (오프라인 동작, Safari 이탈 없음)
+- `#main-view` (메인 화면) ↔ `#legal-view` (법적 화면) 토글 방식
+- 뒤로가기 버튼 `‹` 클릭 시 메인으로 복귀, `window.scrollTo(0, 0)` 처리
+- iOS Settings 스타일 섹션 카드로 각 조항 표시
+
+#### 주요 구현 내용
+- `Main.html`: `id="main-view"` 추가, 버튼 onclick으로 변경, `#legal-view` 뷰 추가, LEGAL 콘텐츠 JS 객체 + `openPage()` / `closePage()` 함수 추가
+- `Style.css`: `.legal-view`, `.legal-header`, `.legal-back-btn`, `.legal-page-title`, `.legal-body`, `.legal-section` 스타일 추가
+- `ViewController.swift`: 외부 URL 처리용 `decidePolicyFor` 제거 (인앱 처리로 불필요)
+- 언어별 대응: 한국어 → 한국어 내용, 그 외 → 영어 내용
+
+### App Store Connect 입력값 확정
+| 항목 | URL |
+|------|-----|
+| 지원 URL (필수) | `https://github.com/moonkj/Scrolly-App/issues` |
+| 개인정보처리방침 URL (필수) | `https://github.com/moonkj/Scrolly-App/blob/main/privacy-policy.md` |
+| 마케팅 URL (선택) | `https://github.com/moonkj/Scrolly-App` |

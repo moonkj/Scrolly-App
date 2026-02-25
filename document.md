@@ -300,11 +300,46 @@ En: Initial release — speed, direction, loop, timer, auto-pause
 
 ## 10. 지원 URL / 마케팅 URL
 
-| 항목 | URL |
-|------|-----|
-| **지원 URL** | GitHub Issues 또는 개인 페이지 |
-| **마케팅 URL** | (선택) 랜딩 페이지 |
-| **개인정보 처리방침 URL** | 필수 — GitHub Pages 등에 게시 필요 |
+### App Store Connect 입력값
+
+| 항목 | URL | 필수 여부 |
+|------|-----|----------|
+| **지원 URL** | `https://github.com/moonkj/Scrolly-App/issues` | 필수 |
+| **개인정보 처리방침 URL** | `https://github.com/moonkj/Scrolly-App/blob/main/privacy-policy.md` | 필수 |
+| **마케팅 URL** | `https://github.com/moonkj/Scrolly-App` | 선택 |
+
+### 각 URL 설명
+
+#### 지원 URL
+```
+https://github.com/moonkj/Scrolly-App/issues
+```
+- GitHub Issues 페이지 — 사용자가 버그 신고, 기능 요청, 문의 가능
+- 별도 계정 없이 누구나 확인 가능 (로그인 없이 읽기 가능)
+- 심사팀도 이 URL로 연락 가능하므로 반드시 접근 가능 상태 유지
+
+#### 개인정보 처리방침 URL (Privacy Policy URL)
+```
+https://github.com/moonkj/Scrolly-App/blob/main/privacy-policy.md
+```
+- App Store Connect 필수 항목
+- 앱 내에서도 확인 가능하지만, **공개 URL로 별도 등록 필수**
+- 현재 GitHub repo에 `privacy-policy.md` 파일이 존재하므로 즉시 사용 가능
+- 나중에 GitHub Pages로 이전 시 URL 교체 권장
+
+#### 마케팅 URL (선택)
+```
+https://github.com/moonkj/Scrolly-App
+```
+- 현재는 GitHub 저장소 메인 페이지 사용
+- 향후 GitHub Pages 랜딩 페이지 제작 후 교체 권장
+  - 예: `https://moonkj.github.io/Scrolly-App`
+
+### GitHub Pages 랜딩 페이지 설정 방법 (향후)
+1. GitHub repo → Settings → Pages
+2. Source: `main` 브랜치 → `/ (root)` 또는 `/docs` 폴더
+3. `index.html` 작성 후 배포
+4. App Store Connect에서 마케팅 URL 업데이트
 
 ---
 
