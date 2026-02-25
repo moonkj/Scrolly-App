@@ -45,6 +45,7 @@
   let dragMoved       = false;
   let dragStartX      = 0, dragStartY  = 0;
   let dragOrigLeft    = 0, dragOrigTop = 0;
+  let _keepalivePort  = null;    // port to detect extension disable
 
   // Wake Lock
   let wakeLock = null;
@@ -72,16 +73,54 @@
   // ─── Settings persistence (global, auto-save) ─────────────────────────────────
 
   function loadSiteSettings() {
+    // Sync: read from current page's localStorage (fast, same-domain)
     try {
       const raw = localStorage.getItem(SETTINGS_KEY);
       if (raw) Object.assign(settings, JSON.parse(raw));
     } catch (_) {}
+    // Async: override with extension storage (cross-domain, survives navigation)
+    try {
+      const p = browser.storage?.local?.get(SETTINGS_KEY);
+      if (p) p.then(result => {
+        if (result?.[SETTINGS_KEY]) {
+          Object.assign(settings, result[SETTINGS_KEY]);
+          notifyState(); // Sync popup if open
+        }
+      }).catch(() => {});
+    } catch (_) {}
   }
 
   function autoSaveSettings() {
+    const snap = { ...settings };
+    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(snap)); } catch (_) {}
+    // Also persist to extension storage so settings survive across domains
     try {
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+      const p = browser.storage?.local?.set({ [SETTINGS_KEY]: snap });
+      if (p) p.catch(() => {});
     } catch (_) {}
+  }
+
+  // ─── Extension keepalive (widget cleanup on extension disable) ───────────────
+
+  function _connectKeepalive() {
+    try {
+      _keepalivePort = browser.runtime.connect({ name: 'keepalive' });
+      _keepalivePort.onDisconnect.addListener(() => {
+        _keepalivePort = null;
+        // Attempt reconnect after 1.5s to allow background restart
+        setTimeout(() => {
+          try {
+            _connectKeepalive(); // succeeds if extension still enabled
+          } catch (_) {
+            // Extension disabled — remove widget from DOM
+            if (widget) { widget.remove(); widget = null; widgetPlayBtn = null; }
+          }
+        }, 1500);
+      });
+    } catch (_) {
+      // connect() failed immediately — extension disabled
+      if (widget) { widget.remove(); widget = null; widgetPlayBtn = null; }
+    }
   }
 
   // ─── Scroll Target Detection ──────────────────────────────────────────────────
@@ -453,6 +492,10 @@
     // Remove before re-adding to prevent duplicate resize listeners on SPA re-create
     window.removeEventListener('resize', _clampWidgetToViewport);
     window.addEventListener('resize', _clampWidgetToViewport);
+
+    // Connect keepalive port (only on first creation, not SPA re-creates)
+    // When extension is disabled, the port disconnects → widget is removed
+    if (!_keepalivePort) _connectKeepalive();
   }
 
   function _clampWidgetToViewport() {

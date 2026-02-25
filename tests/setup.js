@@ -1,14 +1,30 @@
 // tests/setup.js — Global mocks for Safari WebExtension browser APIs
 
 // ─── browser global ───────────────────────────────────────────────────────────
+const _mockPort = {
+  onDisconnect: { addListener: jest.fn() },
+  onMessage:    { addListener: jest.fn() },
+  postMessage:  jest.fn(),
+  disconnect:   jest.fn(),
+};
+
 global.browser = {
   runtime: {
     onMessage: { addListener: jest.fn() },
+    onConnect: { addListener: jest.fn() },
     sendMessage: jest.fn().mockResolvedValue(undefined),
+    connect: jest.fn().mockReturnValue(_mockPort),
   },
   tabs: {
     query: jest.fn().mockResolvedValue([{ id: 1 }]),
-    sendMessage: jest.fn(),
+    sendMessage: jest.fn().mockResolvedValue(undefined),
+  },
+  storage: {
+    local: {
+      get:    jest.fn().mockResolvedValue({}),
+      set:    jest.fn().mockResolvedValue(undefined),
+      remove: jest.fn().mockResolvedValue(undefined),
+    },
   },
 };
 
@@ -48,9 +64,18 @@ beforeEach(() => {
 
   // Restore browser mock (clearAllMocks removes implementations)
   global.browser.runtime.onMessage.addListener = jest.fn();
+  global.browser.runtime.onConnect.addListener = jest.fn();
   global.browser.runtime.sendMessage           = jest.fn().mockResolvedValue(undefined);
+  _mockPort.onDisconnect.addListener           = jest.fn();
+  _mockPort.onMessage.addListener              = jest.fn();
+  _mockPort.postMessage                        = jest.fn();
+  _mockPort.disconnect                         = jest.fn();
+  global.browser.runtime.connect              = jest.fn().mockReturnValue(_mockPort);
   global.browser.tabs.query                    = jest.fn().mockResolvedValue([{ id: 1 }]);
-  global.browser.tabs.sendMessage              = jest.fn();
+  global.browser.tabs.sendMessage              = jest.fn().mockResolvedValue(undefined);
+  global.browser.storage.local.get            = jest.fn().mockResolvedValue({});
+  global.browser.storage.local.set            = jest.fn().mockResolvedValue(undefined);
+  global.browser.storage.local.remove         = jest.fn().mockResolvedValue(undefined);
 
   // Restore NO-OP RAF
   global.requestAnimationFrame = jest.fn().mockReturnValue(1);

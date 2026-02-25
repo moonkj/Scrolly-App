@@ -209,3 +209,42 @@
 - **테스트**: release 이벤트 시뮬레이션 추가 (실제 브라우저 동작 반영)
 
 ### 테스트: 103개 전부 통과
+
+## 2026-02-26 (설정 저장 버그 + 위젯 persistence 버그 수정)
+
+### 버그 수정 1: 설정이 저장되지 않는 문제 (content.js, popup.js)
+
+#### 증상
+- 팝업에서 설정을 변경하고 체크버튼을 눌러도 다음에 열면 이전 설정으로 돌아옴
+- 스크롤 재생 중일 때 특히 저장 안 되는 경향
+
+#### 원인
+- `localStorage`는 **도메인별 격리** → 사이트 이동 시 설정 초기화
+- `pushSettings()` 내부 `browser.tabs.query()` 가 **비동기** → 팝업이 닫히기 전에 resolve가 안 되면 `sendMessage` 미실행 → content.js `autoSaveSettings()` 미호출 → 저장 안 됨
+
+#### 수정
+- **`browser.storage.local`** (확장 스코프, 도메인 무관) 추가 도입:
+  - `content.js loadSiteSettings()`: localStorage 동기 로드 후, `browser.storage.local.get()` 비동기 오버라이드
+  - `content.js autoSaveSettings()`: localStorage + `browser.storage.local.set()` 동시 저장
+  - `popup.js pushSettings()`: `send()` 호출 + `browser.storage.local.set()` 즉시 저장
+  - `popup.js init`: `browser.storage.local.get()` 으로 UI 선 렌더링 (getState 응답 전에도 설정값 표시)
+- **테스트 인프라**: `tests/setup.js`에 `browser.storage.local` 모크 추가
+
+### 버그 수정 2: 확장 비활성화 후 플로팅 위젯 잔류 (content.js, background.js)
+
+#### 증상
+- Safari 확장프로그램 관리에서 확장을 껐는데도 플로팅 위젯이 화면에 남아 있음
+
+#### 원인
+- WebExtension 표준 동작: content script가 주입한 DOM은 확장 비활성화 후에도 페이지에 잔류
+- JS 실행 컨텍스트가 살아있는 경우 `browser.*` API 호출은 실패하지만 DOM은 제거되지 않음
+
+#### 수정 — keepalive port 방식
+- **`content.js`**: 위젯 최초 생성 시 `browser.runtime.connect({ name: 'keepalive' })` 로 포트 연결
+  - 포트가 끊기면(확장 비활성화 시) 1.5초 후 재연결 시도
+  - 재연결 실패 시 위젯 DOM 제거
+  - SPA 재생성 시 포트 중복 연결 방지 (`if (!_keepalivePort)` 가드)
+- **`background.js`**: `browser.runtime.onConnect.addListener()` 추가 (연결 수락)
+- **`tests/setup.js`**: `browser.runtime.connect` / `onConnect` 모크 추가
+
+### 테스트: 103개 전부 통과 (경고 없음)

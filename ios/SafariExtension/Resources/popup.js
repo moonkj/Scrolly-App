@@ -185,6 +185,9 @@
   const gestureToggle    = document.getElementById('gestureToggle');
   const showWidgetToggle = document.getElementById('showWidgetToggle');
 
+  // ─── Storage key ─────────────────────────────────────────────────────────────
+  const SETTINGS_KEY = 'aws_settings';
+
   // ─── Local state ─────────────────────────────────────────────────────────────
   let isScrolling = false;
   let settings = {
@@ -257,6 +260,10 @@
   // ─── Push settings to content script ─────────────────────────────────────────
   function pushSettings() {
     send('updateSettings', { ...settings });
+    // Save immediately to extension storage — survives popup close & cross-domain
+    try {
+      browser.storage?.local?.set({ [SETTINGS_KEY]: { ...settings } })?.catch(() => {});
+    } catch (_) {}
   }
 
   // ─── Event listeners ──────────────────────────────────────────────────────────
@@ -312,6 +319,15 @@
 
   // ─── Init ─────────────────────────────────────────────────────────────────────
   applyI18n();
+  // Pre-load saved settings from extension storage (available even before content responds)
+  try {
+    browser.storage?.local?.get(SETTINGS_KEY)?.then(result => {
+      if (result?.[SETTINGS_KEY]) {
+        Object.assign(settings, result[SETTINGS_KEY]);
+        renderUI();
+      }
+    })?.catch(() => {});
+  } catch (_) {}
   send('getState');
   renderUI();
 })();

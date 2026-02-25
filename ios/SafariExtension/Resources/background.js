@@ -10,3 +10,10 @@ browser.runtime.onMessage.addListener((msg, sender) => {
     });
   }
 });
+
+// Accept keepalive port connections from content scripts.
+// Content script uses the port to detect extension disable:
+// when extension is disabled, this port disconnects and the widget is removed.
+browser.runtime.onConnect.addListener(() => {
+  // No action needed — the connection itself is the keepalive signal
+});
