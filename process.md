@@ -51,3 +51,44 @@
 - **증상**: `sendMessage()` 실패 시 콘솔에 unhandled promise rejection 경고
 - **원인**: `browser.tabs.sendMessage()` 반환 Promise에 `.catch()` 없음
 - **수정**: `.catch(() => {})` 추가
+
+## 2026-02-25 (추가)
+
+### 테스트 커버리지 개선
+
+#### 10. `isFinite(null)` 가드 오작동 (content.js)
+- **증상**: localStorage에 `{ x: null, y: 100 }` 저장 시 위젯이 잘못된 위치에 나타남
+- **원인**: `isFinite(null)` = `true` (null → 0으로 강제 변환됨) → savedPos 검증 실패
+- **수정**: `Number.isFinite(null)` = `false` → `isFinite` → `Number.isFinite`로 변경
+
+### 테스트 인프라 개선 (tests/)
+
+- **eval → require 전환**: `eval(fs.readFileSync(...))` 방식에서 `jest.resetModules() + require()` 방식으로 변경 → Jest coverage 추적 가능
+- **테스트 수**: 64개 → 92개 (28개 추가)
+- **커버리지** (npm test -- --coverage):
+  - content.js: Stmt 90.52% / Branch 79.31% / Func 84.37%
+  - popup.js:   Stmt 96.52% / Branch 84.84% / Func 100%
+  - background.js: 100%
+- **추가된 describe 블록**: scroll timer, direction change, widget collapse/expand, widget speed slider, widget drag, widget position restore, gestureInhibitUntil 검증, autoPause=false
+
+## 2026-02-25 (Wake Lock + Battery 최적화)
+
+### 새 기능: Screen Wake Lock (content.js)
+- **목적**: 스크롤 실행 중 화면 꺼짐 방지
+- **구현**: `navigator.wakeLock.request('screen')` — Safari 16.4+/iOS 16.4+ 지원
+- **startScroll()**: `acquireWakeLock()` 호출 추가
+- **stopScroll()**: `releaseWakeLock()` 호출 추가, 관련 타이머(userScrollTimer) 정리 강화
+- **visibilitychange**: 탭 전환 후 복귀 시 wake lock 재취득 (`document.addEventListener`)
+- **폴백**: `'wakeLock' in navigator` 체크 → 지원 안 하는 환경에서 무시
+
+### 배터리 최적화: autoPause 중 RAF 루프 자체 종료 (content.js)
+- **이전**: autoPause 활성 시 `doScroll`이 계속 실행되며 매 프레임 `scrollBy(0, 0)` 호출 → 60fps 낭비
+- **수정**: `userScrolling && settings.autoPause` 조건 시 `scrollInterval = null; lastRafTime = null; return` → RAF 루프 종료
+- **재개**: `onTouchEnd` / `onUserWheel`의 3초 resume timer에서 `scrollInterval === null`이면 `requestAnimationFrame(doScroll)` 재등록
+- **방향 변경**: `updateSettings`에서 방향 변경 시에도 `scrollInterval === null`이면 RAF 재시작
+
+### 테스트 인프라 개선 (tests/content.test.js)
+- **document 리스너 누적 문제 수정**: `document.addEventListener` spy 추가 → afterEach에서 visibilitychange 등 document 리스너 자동 정리
+- **테스트 수**: 92개 → 101개 (9개 추가)
+  - wake lock describe: 5개
+  - battery autoPause RAF pause/resume describe: 4개

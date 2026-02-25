@@ -1,15 +1,10 @@
 // tests/popup.test.js — Tests for popup.js (IIFE, DOM-coupled)
 
-const fs   = require('fs');
 const path = require('path');
+const POPUP_PATH = path.resolve(__dirname, '../ios/SafariExtension/Resources/popup.js');
 
 // Force Korean locale so i18n resolves to Korean strings (matching original test assertions)
 Object.defineProperty(navigator, 'language', { get: () => 'ko', configurable: true });
-
-const POPUP_JS = fs.readFileSync(
-  path.join(__dirname, '../ios/SafariExtension/Resources/popup.js'),
-  'utf-8'
-);
 
 // Minimal popup.html DOM structure (mirrors popup.html elements)
 const POPUP_DOM = `
@@ -38,9 +33,9 @@ const POPUP_DOM = `
 
 // Helper: inject DOM + eval popup.js → returns the runtime message listener
 function loadPopup() {
-  document.body.innerHTML = POPUP_DOM;
-  // eslint-disable-next-line no-eval
-  eval(POPUP_JS);
+  document.body.innerHTML = POPUP_DOM; // DOM must be ready before popup.js IIFE runs
+  jest.resetModules();
+  require(POPUP_PATH);
   // popup.js registers a listener via browser.runtime.onMessage.addListener
   const calls = browser.runtime.onMessage.addListener.mock.calls;
   if (calls.length === 0) return null;

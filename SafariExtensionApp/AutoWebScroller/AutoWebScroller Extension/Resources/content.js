@@ -46,9 +46,27 @@
   let dragStartX      = 0, dragStartY  = 0;
   let dragOrigLeft    = 0, dragOrigTop = 0;
 
+  // Wake Lock
+  let wakeLock = null;
+
   // Storage keys
   const SETTINGS_KEY   = 'aws_settings';
   const WIDGET_POS_KEY = `aws_widget_pos_${location.hostname}`;
+
+  // ─── Wake Lock ────────────────────────────────────────────────────────────────
+
+  async function acquireWakeLock() {
+    try {
+      if (!('wakeLock' in navigator)) return;
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+    } catch (_) {}
+  }
+
+  function releaseWakeLock() {
+    try { wakeLock?.release(); } catch (_) {}
+    wakeLock = null;
+  }
 
   // ─── Settings persistence (global, auto-save) ─────────────────────────────────
 
@@ -148,28 +166,34 @@
       }
     }
 
-    if (!(userScrolling && settings.autoPause)) {
-      // Delta-time: consistent px/second regardless of frame rate
-      if (lastRafTime === null) lastRafTime = timestamp;
-      const dt = Math.min(timestamp - lastRafTime, 50); // cap 50ms (tab-switch protection)
-      lastRafTime = timestamp;
+    // autoPause: user is touching — stop the RAF loop to save battery.
+    // The resume timer (in onTouchEnd / onUserWheel) will restart it.
+    if (userScrolling && settings.autoPause) {
+      scrollInterval = null;
+      lastRafTime    = null; // reset so resume starts smoothly
+      return;
+    }
 
-      const pps   = speedToPps(settings.speed);
-      const delta = (settings.direction === 'down' ? pps : -pps) * dt / 1000;
-      // scrollBy: relative write, no implicit layout read (unlike scrollTop +=)
-      scrollTarget.scrollBy(0, delta);
+    // Delta-time: consistent px/second regardless of frame rate
+    if (lastRafTime === null) lastRafTime = timestamp;
+    const dt = Math.min(timestamp - lastRafTime, 50); // cap 50ms (tab-switch protection)
+    lastRafTime = timestamp;
 
-      if (settings.loop) {
-        const st = scrollTarget;
-        const isRoot     = st === document.documentElement;
-        const scrollTop  = isRoot ? window.scrollY    : st.scrollTop;
-        const clientH    = isRoot ? window.innerHeight : st.clientHeight;
-        const scrollH    = st.scrollHeight;
-        if (settings.direction === 'down' && scrollTop + clientH >= scrollH - 2) {
-          isRoot ? window.scrollTo(0, 0) : (st.scrollTop = 0);
-        } else if (settings.direction === 'up' && scrollTop <= 2) {
-          isRoot ? window.scrollTo(0, scrollH) : (st.scrollTop = scrollH);
-        }
+    const pps   = speedToPps(settings.speed);
+    const delta = (settings.direction === 'down' ? pps : -pps) * dt / 1000;
+    // scrollBy: relative write, no implicit layout read (unlike scrollTop +=)
+    scrollTarget.scrollBy(0, delta);
+
+    if (settings.loop) {
+      const st = scrollTarget;
+      const isRoot     = st === document.documentElement;
+      const scrollTop  = isRoot ? window.scrollY    : st.scrollTop;
+      const clientH    = isRoot ? window.innerHeight : st.clientHeight;
+      const scrollH    = st.scrollHeight;
+      if (settings.direction === 'down' && scrollTop + clientH >= scrollH - 2) {
+        isRoot ? window.scrollTo(0, 0) : (st.scrollTop = 0);
+      } else if (settings.direction === 'up' && scrollTop <= 2) {
+        isRoot ? window.scrollTo(0, scrollH) : (st.scrollTop = scrollH);
       }
     }
 
@@ -181,6 +205,7 @@
   function startScroll() {
     if (isScrolling) return;
     isScrolling       = true;
+    userScrolling     = false; // clear any stale autoPause state
     lastRafTime       = null;
     spaCheckTimer     = 0;
     scrollTarget      = getScrollTarget();
@@ -190,6 +215,7 @@
     if (settings.timerMins > 0) {
       timerTimeout = setTimeout(stopScroll, settings.timerMins * 60 * 1000);
     }
+    acquireWakeLock();
     updateWidgetUI();
     notifyState();
   }
@@ -200,8 +226,11 @@
     lastRafTime  = null;
     cancelAnimationFrame(scrollInterval); scrollInterval = null;
     clearTimeout(timerTimeout);           timerTimeout   = null;
+    clearTimeout(userScrollTimer);        userScrollTimer = null;
+    userScrolling = false;
     if (originalSpeed !== null) { settings.speed = originalSpeed; originalSpeed = null; }
     try { if (scrollTarget) scrollTarget.style.setProperty('will-change', 'auto'); } catch (_) {}
+    releaseWakeLock();
     updateWidgetUI();
     notifyState();
   }
@@ -215,6 +244,14 @@
       .catch(() => {}); // popup might be closed
   }
 
+  // ─── Wake Lock: re-acquire when tab regains focus ─────────────────────────────
+  // The Wake Lock API automatically releases the lock when the page is hidden.
+  // Listening to visibilitychange lets us re-acquire it when the user returns.
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && isScrolling) acquireWakeLock();
+  });
+
   // ─── Enhanced Auto-pause ──────────────────────────────────────────────────────
 
   window.addEventListener('wheel',      onUserWheel,  { passive: true });
@@ -226,7 +263,10 @@
     if (!settings.autoPause) return;
     userScrolling = true;
     clearTimeout(userScrollTimer);
-    userScrollTimer = setTimeout(() => { userScrolling = false; }, 3000);
+    userScrollTimer = setTimeout(() => {
+      userScrolling = false;
+      if (isScrolling && scrollInterval === null) scrollInterval = requestAnimationFrame(doScroll);
+    }, 3000);
   }
 
   function onTouchStart(e) {
@@ -243,7 +283,10 @@
     const onWidget = widget && widget.contains(e.target);
     if (settings.autoPause && !onWidget) {
       clearTimeout(userScrollTimer);
-      userScrollTimer = setTimeout(() => { userScrolling = false; }, 3000);
+      userScrollTimer = setTimeout(() => {
+        userScrolling = false;
+        if (isScrolling && scrollInterval === null) scrollInterval = requestAnimationFrame(doScroll);
+      }, 3000);
     }
     if (isDragging) onWidgetDragEnd(e);
   }
@@ -296,7 +339,7 @@
     let savedPos = null;
     try {
       const raw = JSON.parse(localStorage.getItem(WIDGET_POS_KEY));
-      if (raw && isFinite(raw.x) && isFinite(raw.y)) savedPos = raw;
+      if (raw && Number.isFinite(raw.x) && Number.isFinite(raw.y)) savedPos = raw;
     } catch (_) {}
 
     widget    = document.createElement('div');
@@ -533,6 +576,8 @@
           // Direction changed — cancel autoPause so it takes effect immediately
           userScrolling = false;
           clearTimeout(userScrollTimer);
+          // If the RAF loop was paused (autoPause), restart it now
+          if (isScrolling && scrollInterval === null) scrollInterval = requestAnimationFrame(doScroll);
           // Pre-position scroll to the correct edge so loop doesn't look like wrong direction
           if (settings.loop && isScrolling && scrollTarget) {
             const st     = scrollTarget;

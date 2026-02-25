@@ -32,6 +32,16 @@ Object.defineProperty(window, 'matchMedia', {
 const _origPushState    = history.pushState.bind(history);
 const _origReplaceState = history.replaceState.bind(history);
 
+// ─── navigator.wakeLock ───────────────────────────────────────────────────────
+const _wakeLockSentinel = {
+  release: jest.fn().mockResolvedValue(undefined),
+  addEventListener: jest.fn(),
+};
+Object.defineProperty(navigator, 'wakeLock', {
+  writable: true,
+  value: { request: jest.fn().mockResolvedValue(_wakeLockSentinel) },
+});
+
 // ─── Reset all mocks before each test ────────────────────────────────────────
 beforeEach(() => {
   jest.clearAllMocks();
@@ -45,6 +55,11 @@ beforeEach(() => {
   // Restore NO-OP RAF
   global.requestAnimationFrame = jest.fn().mockReturnValue(1);
   global.cancelAnimationFrame  = jest.fn();
+
+  // Restore wakeLock mock
+  _wakeLockSentinel.release = jest.fn().mockResolvedValue(undefined);
+  _wakeLockSentinel.addEventListener = jest.fn();
+  navigator.wakeLock.request = jest.fn().mockResolvedValue(_wakeLockSentinel);
 
   // Restore matchMedia
   window.matchMedia = jest.fn().mockReturnValue({

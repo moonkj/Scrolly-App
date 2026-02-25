@@ -1,16 +1,11 @@
 // tests/background.test.js — Tests for background.js (stateless relay)
 
-const fs   = require('fs');
 const path = require('path');
-
-const BACKGROUND_JS = fs.readFileSync(
-  path.join(__dirname, '../ios/SafariExtension/Resources/background.js'),
-  'utf-8'
-);
+const BACKGROUND_PATH = path.resolve(__dirname, '../ios/SafariExtension/Resources/background.js');
 
 function loadBackground() {
-  // eslint-disable-next-line no-eval
-  eval(BACKGROUND_JS);
+  jest.resetModules();
+  require(BACKGROUND_PATH);
   const calls = browser.runtime.onMessage.addListener.mock.calls;
   expect(calls.length).toBeGreaterThan(0);
   return calls[calls.length - 1][0]; // the relay listener
