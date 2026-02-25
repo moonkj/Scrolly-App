@@ -202,6 +202,14 @@
 
   // ─── Start / Stop / Toggle ────────────────────────────────────────────────────
 
+  // Called when the scroll timer fires naturally (not user-initiated stop).
+  // Resets timerMins to 0 so the popup/storage reflects "no timer" state.
+  function onTimerExpired() {
+    settings.timerMins = 0;
+    autoSaveSettings();
+    stopScroll();
+  }
+
   function startScroll() {
     if (isScrolling) return;
     isScrolling       = true;
@@ -213,7 +221,7 @@
     try { scrollTarget.style.setProperty('will-change', 'scroll-position'); } catch (_) {}
     scrollInterval = requestAnimationFrame(doScroll);
     if (settings.timerMins > 0) {
-      timerTimeout = setTimeout(stopScroll, settings.timerMins * 60 * 1000);
+      timerTimeout = setTimeout(onTimerExpired, settings.timerMins * 60 * 1000);
     }
     acquireWakeLock();
     updateWidgetUI();
@@ -596,7 +604,7 @@
         if (message.timerMins !== undefined && isScrolling) {
           clearTimeout(timerTimeout);
           timerTimeout = settings.timerMins > 0
-            ? setTimeout(stopScroll, settings.timerMins * 60 * 1000)
+            ? setTimeout(onTimerExpired, settings.timerMins * 60 * 1000)
             : null;
         }
         autoSaveSettings();

@@ -611,6 +611,26 @@ describe('scroll timer (timerMins)', () => {
     jest.advanceTimersByTime(60_000);
     expect(findStopMsg()).toBeFalsy();
   });
+
+  test('timer expiry resets timerMins to 0 in stateChanged notification', () => {
+    const listener = loadContent();
+    sendMsg(listener, 'updateSettings', { timerMins: 1 });
+    sendMsg(listener, 'start');
+    browser.runtime.sendMessage.mockClear();
+    jest.advanceTimersByTime(60_000);
+    const stopMsg = findStopMsg();
+    expect(stopMsg).toBeTruthy();
+    expect(stopMsg.settings.timerMins).toBe(0);
+  });
+
+  test('timer expiry saves timerMins=0 to localStorage', () => {
+    const listener = loadContent();
+    sendMsg(listener, 'updateSettings', { timerMins: 1 });
+    sendMsg(listener, 'start');
+    jest.advanceTimersByTime(60_000);
+    const saved = JSON.parse(localStorage.getItem('aws_settings'));
+    expect(saved.timerMins).toBe(0);
+  });
 });
 
 // ─── Direction change special handling ───────────────────────────────────────
