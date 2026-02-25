@@ -32,52 +32,197 @@
       </div>
     </div>
 
+    <div class="features">
+      <div class="features-title" data-i18n="features_title"></div>
+      <div class="feature-list">
+        <div class="feature-item">
+          <div class="feature-icon-wrap green">🚀</div>
+          <div class="feature-text">
+            <div class="feature-title" data-i18n="feat_speed_title"></div>
+            <div class="feature-desc"  data-i18n="feat_speed_desc"></div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon-wrap blue">↕️</div>
+          <div class="feature-text">
+            <div class="feature-title" data-i18n="feat_dir_title"></div>
+            <div class="feature-desc"  data-i18n="feat_dir_desc"></div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon-wrap orange">🔁</div>
+          <div class="feature-text">
+            <div class="feature-title" data-i18n="feat_loop_title"></div>
+            <div class="feature-desc"  data-i18n="feat_loop_desc"></div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon-wrap purple">✋</div>
+          <div class="feature-text">
+            <div class="feature-title" data-i18n="feat_autopause_title"></div>
+            <div class="feature-desc"  data-i18n="feat_autopause_desc"></div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon-wrap red">⏱</div>
+          <div class="feature-text">
+            <div class="feature-title" data-i18n="feat_timer_title"></div>
+            <div class="feature-desc"  data-i18n="feat_timer_desc"></div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon-wrap teal">💾</div>
+          <div class="feature-text">
+            <div class="feature-title" data-i18n="feat_save_title"></div>
+            <div class="feature-desc"  data-i18n="feat_save_desc"></div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon-wrap indigo">👆</div>
+          <div class="feature-text">
+            <div class="feature-title" data-i18n="feat_gesture_title"></div>
+            <div class="feature-desc"  data-i18n="feat_gesture_desc"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <script>
   (function () {
     var I18N = {
       ko: {
-        tagline:     'Safari에서 웹페이지를 자동으로 스크롤합니다',
-        step1_title: 'Safari 확장 프로그램 활성화',
-        step1_desc:  '설정 → Safari → 확장 프로그램 → Scrolly를 켜주세요',
-        step2_title: 'Safari에서 실행',
-        step2_desc:  'Safari 주소창의 퍼즐 아이콘을 탭해 Scrolly를 시작하세요'
+        tagline:              'Safari에서 웹페이지를 자동으로 스크롤합니다',
+        step1_title:          'Safari 확장 프로그램 활성화',
+        step1_desc:           '설정 → Safari → 확장 프로그램 → Scrolly를 켜주세요',
+        step2_title:          'Safari에서 실행',
+        step2_desc:           'Safari 주소창의 퍼즐 아이콘을 탭해 Scrolly를 시작하세요',
+        features_title:       '주요 기능',
+        feat_speed_title:     '속도 조절',
+        feat_speed_desc:      '1x~20x 범위에서 원하는 속도로',
+        feat_dir_title:       '방향 전환',
+        feat_dir_desc:        '위/아래 방향 선택 가능',
+        feat_loop_title:      '루프 모드',
+        feat_loop_desc:       '페이지 끝에서 처음으로 자동 복귀',
+        feat_autopause_title: '자동 일시정지',
+        feat_autopause_desc:  '화면 터치 즉시 멈춤, 3초 후 자동 재개',
+        feat_timer_title:     '타이머',
+        feat_timer_desc:      '최대 60분 후 자동 정지',
+        feat_save_title:      '사이트별 설정 저장',
+        feat_save_desc:       '사이트마다 다른 속도/옵션 기억',
+        feat_gesture_title:   '제스처 단축키',
+        feat_gesture_desc:    '더블탭 일시정지, 트리플탭 속도 초기화'
       },
       en: {
-        tagline:     'Auto-scroll any webpage in Safari',
-        step1_title: 'Enable Safari Extension',
-        step1_desc:  'Settings → Safari → Extensions → Turn on Scrolly',
-        step2_title: 'Open in Safari',
-        step2_desc:  "Tap the puzzle icon in Safari's address bar to start Scrolly"
+        tagline:              'Auto-scroll any webpage in Safari',
+        step1_title:          'Enable Safari Extension',
+        step1_desc:           'Settings → Safari → Extensions → Turn on Scrolly',
+        step2_title:          'Open in Safari',
+        step2_desc:           "Tap the puzzle icon in Safari's address bar to start Scrolly",
+        features_title:       'Features',
+        feat_speed_title:     'Speed Control',
+        feat_speed_desc:      'Adjust from 1× to 20× speed',
+        feat_dir_title:       'Direction',
+        feat_dir_desc:        'Scroll up or down',
+        feat_loop_title:      'Loop Mode',
+        feat_loop_desc:       'Auto-return to top when page ends',
+        feat_autopause_title: 'Auto Pause',
+        feat_autopause_desc:  'Pauses on touch, resumes after 3 s',
+        feat_timer_title:     'Timer',
+        feat_timer_desc:      'Auto-stop after up to 60 minutes',
+        feat_save_title:      'Per-site Settings',
+        feat_save_desc:       'Remembers speed & options per site',
+        feat_gesture_title:   'Gesture Shortcuts',
+        feat_gesture_desc:    'Double-tap pause, triple-tap reset speed'
       },
       ja: {
-        tagline:     'Safariで自動スクロールを楽しもう',
-        step1_title: 'Safari拡張機能を有効化',
-        step1_desc:  '設定 → Safari → 拡張機能 → Scrollyをオンにする',
-        step2_title: 'Safariで開く',
-        step2_desc:  'SafariのアドレスバーのパズルアイコンをタップしてScrollyを起動'
+        tagline:              'Safariで自動スクロールを楽しもう',
+        step1_title:          'Safari拡張機能を有効化',
+        step1_desc:           '設定 → Safari → 拡張機能 → Scrollyをオンにする',
+        step2_title:          'Safariで開く',
+        step2_desc:           'SafariのアドレスバーのパズルアイコンをタップしてScrollyを起動',
+        features_title:       '主な機能',
+        feat_speed_title:     'スピード調整',
+        feat_speed_desc:      '1×〜20×の範囲で調整可能',
+        feat_dir_title:       'スクロール方向',
+        feat_dir_desc:        '上下方向を選択できる',
+        feat_loop_title:      'ループモード',
+        feat_loop_desc:       'ページ末尾から先頭へ自動復帰',
+        feat_autopause_title: '自動一時停止',
+        feat_autopause_desc:  'タッチで即停止、3秒後に再開',
+        feat_timer_title:     'タイマー',
+        feat_timer_desc:      '最大60分後に自動停止',
+        feat_save_title:      'サイト別設定保存',
+        feat_save_desc:       'サイトごとに速度・設定を記憶',
+        feat_gesture_title:   'ジェスチャーショートカット',
+        feat_gesture_desc:    'ダブルタップで一時停止、トリプルタップでリセット'
       },
       zh: {
-        tagline:     '在Safari中自动滚动网页',
-        step1_title: '启用Safari扩展',
-        step1_desc:  '设置 → Safari → 扩展 → 开启Scrolly',
-        step2_title: '在Safari中打开',
-        step2_desc:  '点击Safari地址栏的拼图图标启动Scrolly'
+        tagline:              '在Safari中自动滚动网页',
+        step1_title:          '启用Safari扩展',
+        step1_desc:           '设置 → Safari → 扩展 → 开启Scrolly',
+        step2_title:          '在Safari中打开',
+        step2_desc:           '点击Safari地址栏的拼图图标启动Scrolly',
+        features_title:       '主要功能',
+        feat_speed_title:     '速度调节',
+        feat_speed_desc:      '1× 到 20× 自由调整',
+        feat_dir_title:       '方向切换',
+        feat_dir_desc:        '可选向上或向下滚动',
+        feat_loop_title:      '循环模式',
+        feat_loop_desc:       '到达页面底部后自动回到顶部',
+        feat_autopause_title: '自动暂停',
+        feat_autopause_desc:  '触摸立即暂停，3秒后自动恢复',
+        feat_timer_title:     '定时器',
+        feat_timer_desc:      '最多60分钟后自动停止',
+        feat_save_title:      '按网站保存设置',
+        feat_save_desc:       '每个网站记住不同的速度和选项',
+        feat_gesture_title:   '手势快捷键',
+        feat_gesture_desc:    '双击暂停，三击重置速度'
       },
       fr: {
-        tagline:     'Défilement automatique dans Safari',
-        step1_title: "Activer l'extension Safari",
-        step1_desc:  'Réglages → Safari → Extensions → Activer Scrolly',
-        step2_title: 'Ouvrir dans Safari',
-        step2_desc:  "Touchez l'icône puzzle dans la barre d'adresse Safari pour démarrer"
+        tagline:              'Défilement automatique dans Safari',
+        step1_title:          "Activer l'extension Safari",
+        step1_desc:           'Réglages → Safari → Extensions → Activer Scrolly',
+        step2_title:          'Ouvrir dans Safari',
+        step2_desc:           "Touchez l'icône puzzle dans la barre d'adresse Safari pour démarrer",
+        features_title:       'Fonctionnalités',
+        feat_speed_title:     'Vitesse',
+        feat_speed_desc:      'De 1× à 20× selon vos préférences',
+        feat_dir_title:       'Direction',
+        feat_dir_desc:        'Défilement vers le haut ou le bas',
+        feat_loop_title:      'Mode boucle',
+        feat_loop_desc:       'Retour automatique en haut en fin de page',
+        feat_autopause_title: 'Pause automatique',
+        feat_autopause_desc:  'Pause au toucher, reprise après 3 s',
+        feat_timer_title:     'Minuterie',
+        feat_timer_desc:      "Arrêt automatique jusqu'à 60 minutes",
+        feat_save_title:      'Réglages par site',
+        feat_save_desc:       'Mémorise vitesse et options par site',
+        feat_gesture_title:   'Raccourcis gestuels',
+        feat_gesture_desc:    'Double tap pause, triple tap réinitialise'
       },
       hi: {
-        tagline:     'Safari में वेबपेज अपने आप स्क्रॉल करें',
-        step1_title: 'Safari Extension चालू करें',
-        step1_desc:  'Settings → Safari → Extensions → Scrolly चालू करें',
-        step2_title: 'Safari में खोलें',
-        step2_desc:  'Safari के address bar में puzzle icon टैप करके शुरू करें'
+        tagline:              'Safari में वेबपेज अपने आप स्क्रॉल करें',
+        step1_title:          'Safari Extension चालू करें',
+        step1_desc:           'Settings → Safari → Extensions → Scrolly चालू करें',
+        step2_title:          'Safari में खोलें',
+        step2_desc:           'Safari के address bar में puzzle icon टैप करके शुरू करें',
+        features_title:       'मुख्य विशेषताएं',
+        feat_speed_title:     'गति नियंत्रण',
+        feat_speed_desc:      '1× से 20× तक अपनी पसंद की गति',
+        feat_dir_title:       'दिशा बदलें',
+        feat_dir_desc:        'ऊपर या नीचे स्क्रॉल चुनें',
+        feat_loop_title:      'लूप मोड',
+        feat_loop_desc:       'पेज के अंत में शुरू से वापस',
+        feat_autopause_title: 'ऑटो पॉज़',
+        feat_autopause_desc:  'टच करने पर तुरंत रुकता है, 3 सेकंड बाद फिर शुरू',
+        feat_timer_title:     'टाइमर',
+        feat_timer_desc:      'अधिकतम 60 मिनट बाद ऑटो बंद',
+        feat_save_title:      'साइट-वार सेटिंग',
+        feat_save_desc:       'हर साइट की अलग स्पीड/विकल्प याद रखता है',
+        feat_gesture_title:   'जेस्चर शॉर्टकट',
+        feat_gesture_desc:    'डबल टैप पॉज़, ट्रिपल टैप स्पीड रीसेट'
       }
     };
 
