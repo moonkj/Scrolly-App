@@ -92,3 +92,15 @@
 - **테스트 수**: 92개 → 101개 (9개 추가)
   - wake lock describe: 5개
   - battery autoPause RAF pause/resume describe: 4개
+
+## 2026-02-25 (버그 수정 — 타이머 초기화)
+
+### 버그 수정: 타이머 만료 후 timerMins 미초기화 (content.js)
+- **증상**: 타이머가 만료되어 스크롤이 자동 종료되어도 팝업 타이머 슬라이더가 여전히 이전 값(예: 5분)으로 남아 있음
+- **원인**: `setTimeout(stopScroll, ...)` 형태로 타이머 등록 → `stopScroll()`은 `settings.timerMins`를 변경하지 않음 → `notifyState()`가 이전 `timerMins` 값을 popup에 전달
+- **수정**: `onTimerExpired()` 래퍼 함수 추가
+  - `settings.timerMins = 0` 초기화
+  - `autoSaveSettings()` 호출 (localStorage 즉시 반영)
+  - `stopScroll()` 호출
+- **영향 범위**: `startScroll()` 및 `updateSettings` 내 타이머 재시작 로직 두 곳 모두 수정
+- **테스트**: 2개 추가 (stateChanged timerMins=0 검증, localStorage 저장 검증) → 103개 통과
