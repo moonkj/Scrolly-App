@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="../Style.css">
 </head>
 <body>
-  <div id="main-view" class="onboarding" style="display:flex">
+  <div id="main-view" class="onboarding">
 
     <div class="brand">
       <img src="../Icon.png" class="app-icon" alt="Scrolly">
@@ -151,7 +151,7 @@
   </div>
 
   <!-- Legal page (terms / privacy) — shown in-app, no Safari needed -->
-  <div id="legal-view" class="legal-view" style="display:none">
+  <div id="legal-view" class="legal-view hidden">
     <div class="legal-header">
       <button class="legal-back-btn" onclick="closePage()">&#8249;</button>
       <span class="legal-page-title" id="legal-title"></span>
@@ -387,14 +387,14 @@
       legalBody.innerHTML = sections.map(function(sec) {
         return '<div class="legal-section"><h3>' + sec[0] + '</h3><p>' + sec[1] + '</p></div>';
       }).join('');
-      mainView.style.display  = 'none';
-      legalView.style.display = 'flex';
+      mainView.classList.add('hidden');
+      legalView.classList.remove('hidden');
       window.scrollTo(0, 0);
     };
 
     window.closePage = function() {
-      legalView.style.display = 'none';
-      mainView.style.display  = 'flex';
+      legalView.classList.add('hidden');
+      mainView.classList.remove('hidden');
       window.scrollTo(0, 0);
     };
   }());
