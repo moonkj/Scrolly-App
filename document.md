@@ -44,6 +44,26 @@ Scrolly가 대신 스크롤합니다.
 En:
 Long articles, recipes, e-books — put your hands down.
 Scrolly scrolls for you.
+
+Ja:
+長い記事、レシピ、電子書籍 — 手を下ろして読みましょう。
+Scrolly が代わりにスクロールします。
+
+Zh:
+长篇文章、食谱、电子书 — 放下双手，尽情阅读。
+Scrolly 替您滚动。
+
+Fr:
+Longs articles, recettes, e-books — posez vos mains.
+Scrolly défile pour vous.
+
+Es:
+Artículos largos, recetas, e-books — baja las manos.
+Scrolly se desplaza por ti.
+
+Hi:
+लंबे लेख, रेसिपी, ई-बुक — हाथ हटाइए और पढ़िए।
+Scrolly आपके लिए स्क्रॉल करता है।
 ```
 
 ---
