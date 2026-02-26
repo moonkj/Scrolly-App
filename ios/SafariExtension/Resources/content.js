@@ -40,6 +40,7 @@
   let widget              = null;
   let widgetPlayBtn       = null;  // direct reference to avoid getElementById miss
   let widgetCollapsed     = false;
+  let cachedWidgetPos     = null;  // global position loaded from browser.storage.local (cross-site)
   let darkModeListener    = null;  // stored ref to prevent duplicate matchMedia listeners
   let isDragging      = false;
   let dragMoved       = false;
@@ -51,8 +52,10 @@
   let wakeLock = null;
 
   // Storage keys
-  const SETTINGS_KEY   = 'aws_settings';
-  const WIDGET_POS_KEY = `aws_widget_pos_${location.hostname}`;
+  const SETTINGS_KEY         = 'aws_settings';
+  const WIDGET_POS_KEY       = `aws_widget_pos_${location.hostname}`;
+  const WIDGET_POS_GLOBAL_KEY = 'aws_widget_pos';
+  const WIDGET_COLLAPSED_KEY = 'aws_widget_collapsed';
 
   // ─── Wake Lock ────────────────────────────────────────────────────────────────
 
@@ -78,14 +81,28 @@
       const raw = localStorage.getItem(SETTINGS_KEY);
       if (raw) Object.assign(settings, JSON.parse(raw));
     } catch (_) {}
+    // Sync: restore widget collapsed state
+    try {
+      if (localStorage.getItem(WIDGET_COLLAPSED_KEY) === '1') widgetCollapsed = true;
+    } catch (_) {}
     // Async: override with extension storage (cross-domain, survives navigation)
     try {
-      const p = browser.storage?.local?.get(SETTINGS_KEY);
+      const p = browser.storage?.local?.get([SETTINGS_KEY, WIDGET_COLLAPSED_KEY, WIDGET_POS_GLOBAL_KEY]);
       if (p) p.then(result => {
         if (result?.[SETTINGS_KEY]) {
           Object.assign(settings, result[SETTINGS_KEY]);
           notifyState(); // Sync popup if open
         }
+        if (result?.[WIDGET_COLLAPSED_KEY] !== undefined) {
+          widgetCollapsed = result[WIDGET_COLLAPSED_KEY];
+          _applyWidgetCollapsedState();
+        }
+        if (result?.[WIDGET_POS_GLOBAL_KEY]) {
+          const raw = result[WIDGET_POS_GLOBAL_KEY];
+          if (raw && Number.isFinite(raw.x) && Number.isFinite(raw.y)) cachedWidgetPos = raw;
+        }
+        // Create widget now that cachedWidgetPos is ready — avoids position jump on cross-site nav
+        if (!widget && settings.showWidget) showWidget();
       }).catch(() => {});
     } catch (_) {}
   }
@@ -378,7 +395,8 @@
 
   function createWidget() {
     if (widget) return;
-    widgetCollapsed = false;  // reset: new widget is always created in expanded state
+    // widgetCollapsed keeps its current value (set by loadSiteSettings on init,
+    // or preserved across SPA navigations since JS context is retained)
 
     // Remove any stale widget left by a previous script instance
     const stale = document.getElementById('__aws_widget__');
@@ -390,6 +408,8 @@
       const raw = JSON.parse(localStorage.getItem(WIDGET_POS_KEY));
       if (raw && Number.isFinite(raw.x) && Number.isFinite(raw.y)) savedPos = raw;
     } catch (_) {}
+    // Fallback: use globally cached position (loaded async from browser.storage.local)
+    if (!savedPos && cachedWidgetPos) savedPos = cachedWidgetPos;
 
     widget    = document.createElement('div');
     widget.id = '__aws_widget__';
@@ -483,6 +503,14 @@
     widget.appendChild(sliderWrap);
     widget.appendChild(playBtn);
 
+    // Apply collapsed state using local refs (widget not yet in DOM, so getElementById unavailable)
+    if (widgetCollapsed) {
+      sliderWrap.style.display = 'none';
+      speedLabel.style.display = 'none';
+      colBtn.textContent       = '+';
+      widget.style.width       = '44px';
+    }
+
     document.body.appendChild(widget);
 
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
@@ -521,6 +549,17 @@
     if (colBtn) colBtn.style.color = dark ? '#fff' : '#1C1C1E';
   }
 
+  function _applyWidgetCollapsedState() {
+    if (!widget) return;
+    const sliderWrap = document.getElementById('__aws_slider_wrap__');
+    const speedLabel = document.getElementById('__aws_speed_label__');
+    const colBtn     = document.getElementById('__aws_col_btn__');
+    if (sliderWrap) sliderWrap.style.display = widgetCollapsed ? 'none' : 'flex';
+    if (speedLabel) speedLabel.style.display = widgetCollapsed ? 'none' : 'block';
+    if (colBtn)     colBtn.textContent       = widgetCollapsed ? '+' : '–';
+    widget.style.width                       = widgetCollapsed ? '44px' : '52px';
+  }
+
   function _styleWidgetPlayBtn(btn) {
     const b = btn || widgetPlayBtn;
     if (!b) return;
@@ -542,13 +581,13 @@
 
   function toggleWidgetCollapse() {
     widgetCollapsed = !widgetCollapsed;
-    const sliderWrap = document.getElementById('__aws_slider_wrap__');
-    const speedLabel = document.getElementById('__aws_speed_label__');
-    const colBtn     = document.getElementById('__aws_col_btn__');
-    if (sliderWrap) sliderWrap.style.display = widgetCollapsed ? 'none' : 'flex';
-    if (speedLabel) speedLabel.style.display = widgetCollapsed ? 'none' : 'block';
-    if (colBtn)     colBtn.textContent       = widgetCollapsed ? '+' : '–';
-    if (widget)     widget.style.width       = widgetCollapsed ? '44px' : '52px';
+    // Persist: localStorage (same-site, sync) + browser.storage.local (cross-site, async)
+    try { localStorage.setItem(WIDGET_COLLAPSED_KEY, widgetCollapsed ? '1' : '0'); } catch (_) {}
+    try {
+      const p = browser.storage?.local?.set({ [WIDGET_COLLAPSED_KEY]: widgetCollapsed });
+      if (p) p.catch(() => {});
+    } catch (_) {}
+    _applyWidgetCollapsedState();
   }
 
   function showWidget() {
@@ -591,11 +630,13 @@
     isDragging = false;
     widget.style.transition = '';
     if (dragMoved) {
+      const pos = { x: parseFloat(widget.style.left), y: parseFloat(widget.style.top) };
+      try { localStorage.setItem(WIDGET_POS_KEY, JSON.stringify(pos)); } catch (_) {}
+      // Also save globally so position persists when navigating to a different site
+      cachedWidgetPos = pos;
       try {
-        localStorage.setItem(WIDGET_POS_KEY, JSON.stringify({
-          x: parseFloat(widget.style.left),
-          y: parseFloat(widget.style.top)
-        }));
+        const p = browser.storage?.local?.set({ [WIDGET_POS_GLOBAL_KEY]: pos });
+        if (p) p.catch(() => {});
       } catch (_) {}
     }
   }
@@ -708,6 +749,9 @@
   // ─── Init ─────────────────────────────────────────────────────────────────────
 
   loadSiteSettings();
-  if (settings.showWidget) showWidget();
+  // Widget creation is deferred into the loadSiteSettings async callback so that
+  // cachedWidgetPos is populated before createWidget() runs (avoids cross-site position jump).
+  // 300ms timeout is a fallback in case browser.storage.local is unavailable.
+  setTimeout(() => { if (!widget && settings.showWidget) showWidget(); }, 300);
   notifyState();
 })();

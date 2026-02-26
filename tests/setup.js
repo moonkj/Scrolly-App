@@ -1,5 +1,13 @@
 // tests/setup.js — Global mocks for Safari WebExtension browser APIs
 
+// ─── Synchronous thenable helper ──────────────────────────────────────────────
+// browser.storage.local.get is mocked to resolve synchronously so that .then()
+// callbacks in loadSiteSettings() fire during require(), keeping widget creation
+// synchronous and test-compatible with immediate DOM assertions.
+const _syncGet = (value = {}) => ({
+  then: (cb) => { cb(value); return { catch: () => {} }; },
+});
+
 // ─── browser global ───────────────────────────────────────────────────────────
 const _mockPort = {
   onDisconnect: { addListener: jest.fn() },
@@ -21,7 +29,7 @@ global.browser = {
   },
   storage: {
     local: {
-      get:    jest.fn().mockResolvedValue({}),
+      get:    jest.fn().mockReturnValue(_syncGet()),
       set:    jest.fn().mockResolvedValue(undefined),
       remove: jest.fn().mockResolvedValue(undefined),
     },
@@ -73,7 +81,7 @@ beforeEach(() => {
   global.browser.runtime.connect              = jest.fn().mockReturnValue(_mockPort);
   global.browser.tabs.query                    = jest.fn().mockResolvedValue([{ id: 1 }]);
   global.browser.tabs.sendMessage              = jest.fn().mockResolvedValue(undefined);
-  global.browser.storage.local.get            = jest.fn().mockResolvedValue({});
+  global.browser.storage.local.get            = jest.fn().mockReturnValue(_syncGet());
   global.browser.storage.local.set            = jest.fn().mockResolvedValue(undefined);
   global.browser.storage.local.remove         = jest.fn().mockResolvedValue(undefined);
 

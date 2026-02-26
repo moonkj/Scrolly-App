@@ -248,3 +248,55 @@
 - **`tests/setup.js`**: `browser.runtime.connect` / `onConnect` 모크 추가
 
 ### 테스트: 103개 전부 통과 (경고 없음)
+
+## 2026-02-26 (플로팅 위젯 상태 persistence 버그 3개 수정)
+
+### 버그 수정 1: 축소 상태가 사이트 이동 후 초기화됨 (content.js)
+
+#### 증상
+- 플로팅 위젯을 축소(–) 상태로 만들고 다른 사이트로 이동하면 다시 확대 상태로 나타남
+
+#### 원인
+- `createWidget()`에서 항상 `widgetCollapsed = false`로 리셋
+- SPA 이동 시 `onNavigate()` → `createWidget()` 재호출 → 축소 상태 손실
+- 크로스-사이트 이동 시 content.js 재주입 → 변수 자체가 `false`로 초기화
+
+#### 수정
+- `WIDGET_COLLAPSED_KEY = 'aws_widget_collapsed'` 전역 스토리지 키 추가
+- `toggleWidgetCollapse()`: localStorage + `browser.storage.local` 양쪽에 상태 저장
+- `loadSiteSettings()`: localStorage(동기) + `browser.storage.local`(비동기)에서 collapsed 상태 복원
+- `_applyWidgetCollapsedState()` 헬퍼 추가 — 비동기 콜백에서 DOM 반영
+- `createWidget()`: `widgetCollapsed = false` 리셋 제거 → 현재 값으로 DOM 초기화
+
+### 버그 수정 2: 사이트 이동 후 위젯 위치가 초기화됨 (content.js)
+
+#### 증상
+- 위젯을 드래그로 특정 위치에 고정해도 다른 사이트 이동 시 기본 위치(우하단)로 돌아옴
+
+#### 원인
+- `WIDGET_POS_KEY = aws_widget_pos_${hostname}` — 사이트별 격리 키 사용
+- 다른 사이트에는 저장된 위치가 없으므로 기본 위치로 생성됨
+- `browser.storage.local` 연동 없어 크로스-사이트 복원 불가
+
+#### 수정
+- `WIDGET_POS_GLOBAL_KEY = 'aws_widget_pos'` 전역 위치 키 추가
+- `onWidgetDragEnd()`: localStorage(사이트별) + `browser.storage.local`(전역) 동시 저장
+- `loadSiteSettings()` 비동기 콜백: 전역 위치 로드 → `cachedWidgetPos` 캐싱
+- `createWidget()`: site-specific 위치 없으면 `cachedWidgetPos` 폴백 사용
+
+### 버그 수정 3: 사이트 이동 시 위젯 위치 점프 현상 (content.js)
+
+#### 증상
+- 다른 사이트로 이동할 때 위젯이 잠깐 기본 위치에 나타났다가 저장된 위치로 이동 (점프)
+
+#### 원인
+- 위젯을 init 시 즉시 생성 → `browser.storage.local.get()`이 아직 비동기 대기 중
+- `cachedWidgetPos`가 null인 상태로 `createWidget()` 실행 → 기본 위치로 생성
+- 비동기 콜백 완료 후 위치 재적용 → 시각적 점프
+
+#### 수정
+- 위젯 생성을 `loadSiteSettings()` 비동기 콜백 내부로 이동 → `cachedWidgetPos` 준비 후 생성
+- `setTimeout(300ms)` 폴백 — `browser.storage.local` 미응답 시 기본 위치로 생성
+- `tests/setup.js`: `browser.storage.local.get` 모크를 동기 thenable로 변경 → 테스트에서 위젯이 즉시 생성되도록 보장
+
+### 테스트: 103개 전부 통과
