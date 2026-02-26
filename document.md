@@ -130,60 +130,371 @@ Scrolly is an auto-scroll extension for Safari on iPhone and iPad.
 Whether you're cooking, exercising, or just want to read hands-free,
 Scrolly smoothly scrolls any webpage in Safari — automatically.
 
-─── KEY FEATURES ────────────────────────
++ KEY FEATURES +
 
-▶ One-Tap Start / Stop
-  Toggle auto-scroll instantly from the Safari popup.
+* One-Tap Start / Stop
+  - Toggle auto-scroll instantly from the Safari popup.
 
-🚀 Adjustable Speed (1x – 20x)
-  Slow read or quick skim — drag the slider to your perfect pace.
+* Adjustable Speed (1x – 20x)
+  - Slow read or quick skim — drag the slider to your perfect pace.
 
-🧭 Direction Control
-  Scroll down ↓ or up ↑, whichever you need.
+* Direction Control
+  - Scroll down ↓ or up ↑, whichever you need.
 
-🔁 Loop Mode
-  Reaches the bottom? Jumps right back to the top.
-  Perfect for banners, scripts, or continuous reading.
+* Loop Mode
+  - Reaches the bottom? Jumps right back to the top.
+  - Perfect for banners, scripts, or continuous reading.
 
-⏸ Auto-Pause
-  Touching the screen pauses scrolling instantly.
-  Scrolly resumes automatically after 3 seconds.
-  Tap links, zoom in — all without turning off auto-scroll.
+* Auto-Pause
+  - Touching the screen pauses scrolling instantly.
+  - Scrolly resumes automatically after 3 seconds.
+  - Tap links, zoom in — all without turning off auto-scroll.
 
-⏱ Timer (5 – 60 min)
-  Set a duration and Scrolly stops on its own.
-  Great for bedtime reading or timed sessions.
+* Timer (5 – 60 min)
+  - Set a duration and Scrolly stops on its own.
+  - Great for bedtime reading or timed sessions.
 
-👋 Gesture Shortcuts
-  • Double tap: pause / resume instantly
-  • Triple tap: reset speed to default (2x)
+* Gesture Shortcuts
+  - Double tap: pause / resume instantly
+  - Triple tap: reset speed to default (2x)
   Control Scrolly without ever opening the popup.
 
-🎛 Floating Widget
-  A draggable mini-controller that stays on top of the page.
-  Drag it anywhere — play/stop button and speed slider always handy.
+* Floating Widget
+  - A draggable mini-controller that stays on top of the page.
+  - Drag it anywhere — play/stop button and speed slider always handy.
 
-💡 Keep Screen Awake
-  Screen stays on while scrolling. No more tapping just to keep
-  the display lit while following a recipe or sheet music.
+* Keep Screen Awake
+  - Screen stays on while scrolling. No more tapping just to keep
+  - the display lit while following a recipe or sheet music.
 
-🌍 6 Languages
+* 6 Languages
   Korean · English · Japanese · Chinese · French · Spanish
 
-─── HOW TO USE ──────────────────────────
-
+* HOW TO USE 
 1. After installing, go to Settings → Safari → Extensions → enable Scrolly
 2. Open any webpage in Safari
 3. Tap the puzzle icon in the address bar → select Scrolly
 4. Press ▶ to start scrolling!
 
-─── PERFECT FOR ─────────────────────────
+* PERFECT FOR 
+  - Reading long articles or blogs hands-free
+  - Following recipes while cooking
+  - Keeping up with workout or stretching guides
+  - Auto-advancing sheet music, scripts, or e-books
+  - Looping dashboards or presentations
+```
 
-• Reading long articles or blogs hands-free
-• Following recipes while cooking
-• Keeping up with workout or stretching guides
-• Auto-advancing sheet music, scripts, or e-books
-• Looping dashboards or presentations
+---
+
+### 日本語 (Japanese)
+
+```
+Scrolly は、Safari の iPhone・iPad 向け自動スクロール拡張機能です。
+料理中、運動中、またはハンズフリーで読みたいとき、
+Safari のどんなウェブページも Scrolly が自動的にスクロールします。
+
++ 主な機能 +
+
+* ワンタップ開始 / 停止
+  Safari のポップアップからワンタップで ON/OFF を切り替え。
+
+* スピード調整（1x〜20x）
+  ゆっくり精読から素早いスキャンまで、スライダーで自由に調整。
+
+* スクロール方向
+  下↓ でも上↑ でも、好きな方向へ。
+
+* ループモード
+  一番下に到達したら自動的に先頭に戻ります。
+  バナー、台本、長い文書の繰り返し閲覧に最適。
+
+* 自動一時停止
+  画面に触れると即座に停止。3秒後に自動再開。
+  オートスクロール中でもリンクのタップやズームが自由自在。
+
+* タイマー（5分〜60分）
+  指定時間が経過すると自動的にスクロールを停止。
+  就寝前の読書や時間制限のある閲覧に便利。
+
+* ジェスチャーショートカット
+  - ダブルタップ：一時停止 / 再開を即時切り替え
+  - トリプルタップ：速度をデフォルト（2x）にリセット
+  ポップアップを開かずに画面をタップするだけで操作可能。
+
+* フローティングウィジェット
+  ページ上に浮かぶドラッグ可能なミニコントローラー。
+  どこにでも移動可能 — 再生/停止ボタンとスピードスライダーをいつでも手元に。
+
+* 画面点灯維持
+  スクロール中は画面が自動的にオフになりません。
+  レシピや楽譜を見るときに画面を常にタップする必要がなくなります。
+
+* 6ヶ国語対応
+  韓国語 · English · 日本語 · 中文 · Français · Español
+
+* 使い方
+1. インストール後、設定 → Safari → 機能拡張 → Scrolly を有効化
+2. Safari で任意のウェブページを開く
+3. アドレスバーのパズルアイコン → Scrolly を選択
+4. ▶ ボタンをタップしてスクロール開始！
+
+* こんな方におすすめ
+  - 長い記事やブログをハンズフリーで読みたい方
+  - 料理中にレシピを手を使わず確認したい方
+  - ワークアウトやストレッチ中にガイドを追いたい方
+  - 楽譜、台本、電子書籍を自動送りしたい方
+  - ダッシュボードやプレゼンテーションをループ表示させたい方
+```
+
+---
+
+### 中文 (Chinese Simplified)
+
+```
+Scrolly 是 Safari 在 iPhone 和 iPad 上的自动滚屏扩展。
+无论您在烹饪、运动，还是只是想解放双手阅读，
+Scrolly 都能自动滚动 Safari 中的任何网页。
+
++ 主要功能 +
+
+* 一键开始 / 停止
+  在 Safari 弹窗中一键切换自动滚屏。
+
+* 速度调节（1x ~ 20x）
+  慢速精读到快速浏览，拖动滑块随意调节。
+
+* 方向控制
+  向下↓ 或向上↑，随您所愿。
+
+* 循环模式
+  滚动到底部后自动返回顶部。
+  适合公告栏、台词、长文档的循环查看。
+
+* 自动暂停
+  触摸屏幕立即暂停，3秒后自动恢复。
+  滚动中也可自由点击链接或放大缩小。
+
+* 计时器（5分钟 ~ 60分钟）
+  设定时长后，Scrolly 将自动停止滚动。
+  适合睡前阅读或定时浏览。
+
+* 手势快捷键
+  - 双击：暂停 / 继续即时切换
+  - 三击：将速度重置为默认值（2x）
+  无需打开弹窗，只需轻触屏幕即可操控。
+
+* 浮动小组件
+  悬浮于页面上方的可拖动迷你控制器。
+  可拖动到任意位置——播放/停止按钮和速度滑块随时可用。
+
+* 保持屏幕常亮
+  滚动期间屏幕不会自动关闭。
+  查看食谱或乐谱时无需不断触碰屏幕保持亮屏。
+
+* 支持6种语言
+  韩语 · 英语 · 日语 · 中文 · 法语 · 西班牙语
+
+* 使用方法
+1. 安装后，前往设置 → Safari → 扩展程序 → 启用 Scrolly
+2. 在 Safari 中打开任意网页
+3. 点击地址栏中的拼图图标 → 选择 Scrolly
+4. 点击 ▶ 按钮开始滚动！
+
+* 适合人群
+  - 想要解放双手阅读长篇文章或博客的用户
+  - 烹饪时想免手查看食谱的用户
+  - 运动或拉伸时想跟随指南的用户
+  - 想要自动翻页查看乐谱、台词或电子书的用户
+  - 想要循环显示仪表盘或演示文稿的用户
+```
+
+---
+
+### Français (French)
+
+```
+Scrolly est une extension de défilement automatique pour Safari sur iPhone et iPad.
+Que vous cuisiniez, fassiez du sport ou souhaitiez simplement lire les mains libres,
+Scrolly fait défiler automatiquement n'importe quelle page web dans Safari.
+
++ FONCTIONNALITÉS CLÉS +
+
+* Démarrage / Arrêt en un geste
+  Activez ou désactivez le défilement automatique d'une simple pression dans le popup Safari.
+
+* Vitesse réglable (1x – 20x)
+  Lecture lente ou survol rapide — faites glisser le curseur à votre rythme idéal.
+
+* Contrôle de direction
+  Faites défiler vers le bas ↓ ou vers le haut ↑, selon vos besoins.
+
+* Mode boucle
+  Arrivé en bas ? Retour automatique en haut.
+  Parfait pour les bannières, les scripts ou la lecture en continu.
+
+* Pause automatique
+  Toucher l'écran met le défilement en pause instantanément.
+  Scrolly reprend automatiquement après 3 secondes.
+  Appuyez sur des liens, zoomez — sans désactiver le défilement automatique.
+
+* Minuterie (5 – 60 min)
+  Définissez une durée et Scrolly s'arrête tout seul.
+  Idéal pour la lecture au coucher ou les sessions minutées.
+
+* Raccourcis gestuels
+  - Double appui : pause / reprise instantanée
+  - Triple appui : réinitialiser la vitesse par défaut (2x)
+  Contrôlez Scrolly sans jamais ouvrir le popup.
+
+* Widget flottant
+  Un mini-contrôleur déplaçable qui reste au-dessus de la page.
+  Faites-le glisser n'importe où — bouton lecture/pause et curseur de vitesse toujours à portée.
+
+* Écran toujours allumé
+  L'écran reste allumé pendant le défilement.
+  Fini de taper pour garder l'affichage actif en suivant une recette ou une partition.
+
+* 6 langues supportées
+  Coréen · Anglais · Japonais · Chinois · Français · Espagnol
+
+* COMMENT UTILISER
+1. Après installation, allez dans Réglages → Safari → Extensions → Activer Scrolly
+2. Ouvrez n'importe quelle page web dans Safari
+3. Appuyez sur l'icône puzzle dans la barre d'adresse → sélectionnez Scrolly
+4. Appuyez sur ▶ pour commencer à faire défiler !
+
+* PARFAIT POUR
+  - Lire de longs articles ou des blogs les mains libres
+  - Consulter des recettes en cuisinant
+  - Suivre des guides d'entraînement ou d'étirement
+  - Avancer automatiquement dans les partitions, scripts ou e-books
+  - Faire défiler en boucle des tableaux de bord ou des présentations
+```
+
+---
+
+### Español (Spanish)
+
+```
+Scrolly es una extensión de desplazamiento automático para Safari en iPhone e iPad.
+Ya sea que estés cocinando, haciendo ejercicio o simplemente quieras leer con las manos libres,
+Scrolly desplaza automáticamente cualquier página web en Safari.
+
++ CARACTERÍSTICAS PRINCIPALES +
+
+* Inicio / Parada con un toque
+  Activa o desactiva el desplazamiento automático al instante desde el popup de Safari.
+
+* Velocidad ajustable (1x – 20x)
+  Lectura lenta o vista rápida — arrastra el control deslizante a tu ritmo ideal.
+
+* Control de dirección
+  Desplazamiento hacia abajo ↓ o hacia arriba ↑, como prefieras.
+
+* Modo bucle
+  ¿Llegó al final? Vuelve automáticamente al principio.
+  Perfecto para banners, guiones o lectura continua.
+
+* Pausa automática
+  Tocar la pantalla pausa el desplazamiento al instante.
+  Scrolly se reanuda automáticamente después de 3 segundos.
+  Toca enlaces, haz zoom — sin desactivar el desplazamiento automático.
+
+* Temporizador (5 – 60 min)
+  Establece una duración y Scrolly se detiene solo.
+  Ideal para leer antes de dormir o sesiones cronometradas.
+
+* Atajos de gestos
+  - Doble toque: pausar / reanudar al instante
+  - Triple toque: restablecer velocidad predeterminada (2x)
+  Controla Scrolly sin abrir nunca el popup.
+
+* Widget flotante
+  Un mini-controlador arrastrable que permanece sobre la página.
+  Arrástralo donde quieras — botón de reproducción/pausa y control de velocidad siempre a mano.
+
+* Pantalla siempre encendida
+  La pantalla permanece encendida mientras se desplaza.
+  Ya no necesitas tocarla para mantenerla activa al seguir una receta o partitura.
+
+* 6 idiomas
+  Coreano · Inglés · Japonés · Chino · Francés · Español
+
+* CÓMO USAR
+1. Tras instalar, ve a Ajustes → Safari → Extensiones → Activar Scrolly
+2. Abre cualquier página web en Safari
+3. Toca el icono de puzzle en la barra de direcciones → selecciona Scrolly
+4. Pulsa ▶ para empezar a desplazarte
+
+* PERFECTO PARA
+  - Leer artículos largos o blogs con las manos libres
+  - Ver recetas mientras cocinas
+  - Seguir guías de entrenamiento o estiramientos
+  - Avanzar automáticamente en partituras, guiones o e-books
+  - Hacer bucle en paneles de control o presentaciones
+```
+
+---
+
+### हिन्दी (Hindi)
+
+```
+Scrolly, iPhone और iPad पर Safari के लिए एक ऑटो-स्क्रॉल एक्सटेंशन है।
+चाहे आप खाना बना रहे हों, व्यायाम कर रहे हों, या बस हाथों-मुक्त पढ़ना चाहते हों,
+Scrolly Safari में किसी भी वेबपेज को अपने आप स्क्रॉल करता है।
+
++ मुख्य विशेषताएं +
+
+* एक टैप में शुरू / रोकें
+  Safari पॉपअप से एक टैप में ऑटो-स्क्रॉल चालू/बंद करें।
+
+* गति समायोजन (1x – 20x)
+  धीमी पठन से लेकर तेज़ स्कैनिंग तक — स्लाइडर को अपनी पसंदीदा गति पर खींचें।
+
+* दिशा नियंत्रण
+  नीचे↓ या ऊपर↑ — जो चाहें।
+
+* लूप मोड
+  नीचे पहुंच गए? अपने आप ऊपर वापस आ जाता है।
+  बैनर, स्क्रिप्ट या निरंतर पठन के लिए उपयुक्त।
+
+* ऑटो-पॉज़
+  स्क्रीन छूने पर स्क्रॉलिंग तुरंत रुक जाती है।
+  3 सेकंड बाद Scrolly अपने आप फिर शुरू हो जाता है।
+  ऑटो-स्क्रॉल बंद किए बिना लिंक टैप करें, ज़ूम करें।
+
+* टाइमर (5 – 60 मिनट)
+  समय तय करें और Scrolly अपने आप रुक जाएगा।
+  सोने से पहले पढ़ने या तय समय के सत्रों के लिए उपयोगी।
+
+* जेस्चर शॉर्टकट
+  - डबल टैप: पॉज़ / रिज़्यूम तुरंत
+  - ट्रिपल टैप: गति को डिफ़ॉल्ट (2x) पर रीसेट करें
+  पॉपअप खोले बिना स्क्रीन टैप करके नियंत्रण करें।
+
+* फ्लोटिंग विजेट
+  पेज के ऊपर तैरता हुआ ड्रैग करने योग्य मिनी-कंट्रोलर।
+  कहीं भी खींचें — प्ले/स्टॉप बटन और स्पीड स्लाइडर हमेशा हाथ में।
+
+* स्क्रीन जागृत रखें
+  स्क्रॉलिंग के दौरान स्क्रीन अपने आप बंद नहीं होती।
+  रेसिपी या शीट म्यूज़िक देखते समय बार-बार टैप करने की जरूरत नहीं।
+
+* 6 भाषाएं
+  Korean · English · Japanese · Chinese · French · Spanish
+
+* उपयोग कैसे करें
+1. इंस्टॉल करने के बाद, Settings → Safari → Extensions → Scrolly सक्षम करें
+2. Safari में कोई भी वेबपेज खोलें
+3. एड्रेस बार में पज़ल आइकन टैप करें → Scrolly चुनें
+4. ▶ बटन दबाएं और स्क्रॉलिंग शुरू करें!
+
+* इनके लिए एकदम सही
+  - लंबे लेख या ब्लॉग हाथों-मुक्त पढ़ना
+  - खाना पकाते समय रेसिपी देखना
+  - वर्कआउट या स्ट्रेचिंग गाइड का पालन करना
+  - शीट म्यूज़िक, स्क्रिप्ट या ई-बुक अपने आप आगे बढ़ाना
+  - डैशबोर्ड या प्रेज़ेंटेशन लूप करना
 ```
 
 ---
@@ -380,4 +691,4 @@ scroll engine script. No data is collected or transmitted.
 
 - **주 카테고리**: Utilities
 - **부 카테고리**: Productivity
-- **App Store 검색 태그**: safari extension, auto scroll, reader, hands free, accessibility
+- **App Store 검색 태그**: safari, auto scroll, reader, hands free, accessibility
