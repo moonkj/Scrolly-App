@@ -63,7 +63,9 @@
     try {
       if (!('wakeLock' in navigator)) return;
       if (wakeLock) return;  // already held — avoid duplicate acquisition & reference leak
-      wakeLock = await navigator.wakeLock.request('screen');
+      const lock = await navigator.wakeLock.request('screen');
+      if (!isScrolling) { lock.release(); return; }  // stopped before async resolved
+      wakeLock = lock;
       wakeLock.addEventListener('release', () => { wakeLock = null; });
     } catch (_) {}
   }

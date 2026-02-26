@@ -354,6 +354,31 @@
 
 ### 테스트: 103개 전부 통과
 
+## 2026-02-27 (Wake Lock Race Condition 버그 수정 + v1.0.0 IPA 빌드)
+
+### 버그 수정: Wake Lock async race condition (content.js)
+
+#### 증상
+- 스크롤 시작 직후 빠르게 정지 시 화면 꺼짐 방지가 해제되지 않고 남아있을 수 있음
+
+#### 원인
+- `acquireWakeLock()`은 `async` 함수 — `await navigator.wakeLock.request('screen')` 대기 중
+- `stopScroll()` 호출 → `releaseWakeLock()` 실행 시점에 `wakeLock === null` → 아무것도 해제 안 함
+- `request('screen')`이 나중에 resolve → `wakeLock` 세팅됨 → 스크롤 정지 상태인데 Wake Lock 보유
+
+#### 수정 (content.js)
+- `const lock = await navigator.wakeLock.request('screen')` — 임시 변수로 받음
+- resolve 직후 `if (!isScrolling) { lock.release(); return; }` 재확인 가드 추가
+- `isScrolling`이 false면 즉시 해제 후 `wakeLock` 변수에 저장하지 않음
+
+### v1.0.0 (Build 1) IPA 빌드 — App Store 배포용
+
+- **테스트**: 103개 전부 통과 확인 후 진행
+- **아카이브**: `xcodebuild archive` → `~/Desktop/Scrolly.xcarchive`
+- **IPA 내보내기**: `xcodebuild -exportArchive` (method: app-store) → `~/Desktop/Scrolly_IPA/AutoWebScroller.ipa`
+- **버전**: 1.0.0 / 빌드 번호 1
+- **서명**: Apple Development (팀 QN975MTM7H), 자동 프로비저닝
+
 ## 2026-02-26 (App Store Connect 현지화 문서 정비)
 
 ### document.md — 다국어 번역 추가
