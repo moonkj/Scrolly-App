@@ -664,7 +664,8 @@
         break;
 
       case 'updateSettings': {
-        const prevDirection = settings.direction;
+        const prevDirection  = settings.direction;
+        const prevShowWidget = settings.showWidget;
         Object.assign(settings, message);
         // Any popup interaction: inhibit gesture shortcuts for 800ms to avoid
         // spurious double-tap from iOS touch-through on popup open/close
@@ -696,6 +697,11 @@
             ? setTimeout(onTimerExpired, settings.timerMins * 60 * 1000)
             : null;
         }
+        // Handle widget visibility change via updateSettings (fallback for lost showWidget/hideWidget msgs)
+        if (message.showWidget !== undefined && settings.showWidget !== prevShowWidget) {
+          if (settings.showWidget) showWidget();
+          else hideWidget();
+        }
         autoSaveSettings();
         updateWidgetUI();
         notifyState();
@@ -703,10 +709,12 @@
       }
 
       case 'showWidget':
+        settings.showWidget = true;
         showWidget();
         break;
 
       case 'hideWidget':
+        settings.showWidget = false;
         hideWidget();
         break;
     }

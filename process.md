@@ -300,3 +300,56 @@
 - `tests/setup.js`: `browser.storage.local.get` 모크를 동기 thenable로 변경 → 테스트에서 위젯이 즉시 생성되도록 보장
 
 ### 테스트: 103개 전부 통과
+
+## 2026-02-26 (App Store 준비 — 번들 ID 변경 + Archive 빌드)
+
+### 번들 ID 변경 (project.pbxproj)
+
+#### 변경 내용
+- 앱 이름(Scrolly)과 내부 번들 ID(AutoWebScroller) 불일치 해소
+- App Store Connect 등록 전 마지막 변경 기회 (등록 후 영구 불변)
+
+| 타겟 | 변경 전 | 변경 후 |
+|------|---------|---------|
+| 메인 앱 | `com.kjmoon.AutoWebScroller` | `com.kjmoon.Scrolly` |
+| 확장 | `com.kjmoon.AutoWebScroller.Extension` | `com.kjmoon.Scrolly.Extension` |
+
+#### 수정 파일
+- `SafariExtensionApp/AutoWebScroller/AutoWebScroller.xcodeproj/project.pbxproj`: `PRODUCT_BUNDLE_IDENTIFIER` 4곳 변경
+
+### Archive 빌드 완료
+- `xcodebuild archive` — Release 구성, `~/Desktop/Scrolly.xcarchive` 생성 성공
+- 버전: 1.3 (빌드 번호 3)
+- Deployment Target: iOS 16.4
+
+### App Store Connect 업로드 대기
+- App Store Connect에 `com.kjmoon.Scrolly` 번들 ID로 앱 등록 후 `xcodebuild -exportArchive` 실행 예정
+
+## 2026-02-26 (버그 수정 + UI 개선)
+
+### 버그 수정: 플로팅 위젯 껐다 켜면 미표시 (content.js)
+
+#### 증상
+- 팝업에서 미니 컨트롤 표시 토글을 끈 후 다시 켜도 위젯이 나타나지 않음
+
+#### 원인
+- `popup.js`의 `send()` 함수는 `async` → `showWidget` 메시지 전송 전 팝업이 닫히면 컨텍스트 종료로 메시지 유실 가능
+- `case 'showWidget'` 핸들러 진입 시점에 `settings.showWidget`이 아직 `false` → `showWidget()` 첫 줄 가드 `if (!settings.showWidget) return`에서 조기 종료
+- `updateSettings` 메시지만 도달해도 widget 표시/숨김 처리 로직 없음
+
+#### 수정 (content.js)
+- `case 'showWidget'`: `settings.showWidget = true` 선행 후 `showWidget()` 호출
+- `case 'hideWidget'`: `settings.showWidget = false` 선행 후 `hideWidget()` 호출
+- `case 'updateSettings'`: `message.showWidget` 변경 감지 시 `showWidget()` / `hideWidget()` 직접 호출 (메시지 유실 폴백)
+
+### UI 개선: 팝업 옵션 순서 변경 (popup.html)
+
+#### 변경 전
+속도 → 방향 → 옵션 → 타이머 → 제스처 → 플로팅 위젯
+
+#### 변경 후
+속도 → **플로팅 위젯** → 방향 → 옵션 → 타이머 → 제스처
+
+- 자주 쓰는 위젯 토글을 속도 바로 아래로 이동
+
+### 테스트: 103개 전부 통과
