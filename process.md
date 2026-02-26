@@ -353,3 +353,25 @@
 - 자주 쓰는 위젯 토글을 속도 바로 아래로 이동
 
 ### 테스트: 103개 전부 통과
+
+## 2026-02-26 (App Store Connect 현지화 문서 정비)
+
+### document.md — 다국어 번역 추가
+
+#### 섹션 3. 홍보 문구 (Promotional Text)
+- 기존: 한국어(Ko) + 영어(En) 2개
+- 추가: 일본어(Ja) / 중국어 간체(Zh) / 프랑스어(Fr) / 스페인어(Es) / 힌디어(Hi)
+
+| 언어 | 홍보 문구 (요약) |
+|------|----------------|
+| Ja | 長い記事、レシピ、電子書籍 — 手を下ろして読みましょう。Scrolly が代わりにスクロールします。 |
+| Zh | 长篇文章、食谱、电子书 — 放下双手，尽情阅读。Scrolly 替您滚动。 |
+| Fr | Longs articles, recettes, e-books — posez vos mains. Scrolly défile pour vous. |
+| Es | Artículos largos, recetas, e-books — baja las manos. Scrolly se desplaza por ti. |
+| Hi | लंबे लेख, रेसिपी, ई-बुक — हाथ हटाइए और पढ़िए। Scrolly आपके लिए स्क्रॉल करता है। |
+
+#### 섹션 4. 앱 설명 (Description)
+- 기존: 한국어(Ko) + 영어(En) 2개
+- 추가: 日本語 / 中文(简体) / Français / Español / हिन्दी (Hindi)
+- 각 언어별 전체 설명 (기능 목록 + 사용방법 + 추천 대상) 번역 완성
+- App Store Connect 각 언어 탭의 설명(Description) 필드에 바로 붙여넣기 가능한 형식
