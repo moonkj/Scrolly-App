@@ -375,9 +375,26 @@
 
 - **테스트**: 103개 전부 통과 확인 후 진행
 - **아카이브**: `xcodebuild archive` → `~/Desktop/Scrolly.xcarchive`
-- **IPA 내보내기**: `xcodebuild -exportArchive` (method: app-store) → `~/Desktop/Scrolly_IPA/AutoWebScroller.ipa`
+- **IPA 내보내기**: `xcodebuild -exportArchive` (method: app-store) → `~/Desktop/Scrolly_IPA/Scrolly.ipa`
 - **버전**: 1.0.0 / 빌드 번호 1
 - **서명**: Apple Development (팀 QN975MTM7H), 자동 프로비저닝
+
+## 2026-02-27 (IPA 파일명 Scrolly로 변경)
+
+### PRODUCT_NAME 변경 (project.pbxproj)
+
+#### 변경 내용
+- IPA 파일명이 `AutoWebScroller.ipa`로 생성되던 문제 수정
+- `PRODUCT_NAME = "$(TARGET_NAME)"` → 타겟 이름(AutoWebScroller)이 그대로 파일명에 반영되던 구조
+
+| 타겟 | 변경 전 | 변경 후 |
+|------|---------|---------|
+| 메인 앱 PRODUCT_NAME | `$(TARGET_NAME)` → AutoWebScroller | `Scrolly` |
+| 익스텐션 PRODUCT_NAME | `$(TARGET_NAME)` → AutoWebScroller Extension | `Scrolly Extension` |
+| productName 필드 | AutoWebScroller / AutoWebScroller Extension | Scrolly / Scrolly Extension |
+
+- 번들 ID(`com.kjmoon.Scrolly`), 타겟 이름, 소스 코드, 앱 기능에는 영향 없음
+- 결과: `~/Desktop/Scrolly_IPA/Scrolly.ipa` (v1.0.0 Build 1)
 
 ## 2026-02-26 (App Store Connect 현지화 문서 정비)
 
