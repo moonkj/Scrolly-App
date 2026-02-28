@@ -1,6 +1,6 @@
-# Scrolly — Auto Scroller for Safari
+# Scrolly — Auto Web Scroller
 
-**Scrolly** is an auto-scroll extension for Safari on iPhone and iPad.
+**Scrolly** is an auto-scroll extension for iPhone and iPad.
 Scroll any webpage automatically — hands-free.
 
 [![Available on the App Store](https://img.shields.io/badge/App_Store-Download-blue?logo=apple)](https://apps.apple.com/app/id6759715338)
