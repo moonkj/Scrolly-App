@@ -413,6 +413,34 @@
 #### 빌드 및 배포
 - Release 빌드 → 실기기(iPhone Air) 설치 완료
 
+## 2026-02-28 (App Store 심사 거절 대응 + 빌드 2 업로드)
+
+### App Store 심사 거절 사유 2건 수정
+
+#### Guideline 5.2.5 — "Safari" 상표 위반
+- **원인**: 앱 이름·부제목에 "Safari" 포함
+- **수정**: README 제목 `Auto Scroller for Safari` → `Auto Web Scroller`
+- **앱 이름 전 언어 통일** (`오토스크롤러` → `오토웹스크롤러` 기준):
+  - Ko: Scrolly - 오토웹스크롤러
+  - En: Scrolly - Auto Web Scroller
+  - Ja: Scrolly - 自動Webスクローラー
+  - Zh: Scrolly - 自动网页滚屏
+  - Fr: Scrolly - Défilement Web Auto
+  - Es: Scrolly - Scroll Web Auto
+  - Hi: Scrolly - ऑटो वेब स्क्रॉलर
+
+#### Guideline 1.5 — 지원 URL 미흡
+- **원인**: `/issues` 빈 페이지 → 지원 정보 없음으로 판단
+- **수정**: GitHub Pages 활성화 → 지원 URL을 `https://moonkj.github.io/Scrolly-App/` 으로 변경
+- **개인정보처리방침 URL**: `https://moonkj.github.io/Scrolly-App/privacy-policy` 로 변경
+
+### v1.0.0 Build 2 — App Store Connect 업로드
+
+- **변경 내용**: 앱 아이콘 업데이트 (텍스트 제거 + 심볼 이동)
+- **빌드 번호**: 1 → 2 (`agvtool new-version -all 2`)
+- **아카이브**: `xcodebuild archive` → `~/Desktop/Scrolly.xcarchive`
+- **업로드**: `xcodebuild -exportArchive` (destination: upload) → App Store Connect 직접 업로드 완료
+
 ## 2026-02-26 (App Store Connect 현지화 문서 정비)
 
 ### document.md — 다국어 번역 추가
