@@ -647,28 +647,27 @@ En: Initial release — speed, direction, loop, timer, auto-pause
 
 | 항목 | URL | 필수 여부 |
 |------|-----|----------|
-| **지원 URL** | `https://github.com/moonkj/Scrolly-App` | 필수 |
-| **개인정보 처리방침 URL** | `https://github.com/moonkj/Scrolly-App/blob/main/privacy-policy.md` | 필수 |
-| **마케팅 URL** | `https://github.com/moonkj/Scrolly-App` | 선택 |
+| **지원 URL** | `https://moonkj.github.io/Scrolly-App/` | 필수 |
+| **개인정보 처리방침 URL** | `https://moonkj.github.io/Scrolly-App/privacy-policy` | 필수 |
+| **마케팅 URL** | `https://moonkj.github.io/Scrolly-App/` | 선택 |
 
 ### 각 URL 설명
 
 #### 지원 URL
 ```
-https://github.com/moonkj/Scrolly-App
+https://moonkj.github.io/Scrolly-App/
 ```
-- README.md에 앱 소개 + 지원 안내 (Issues 링크 포함) 작성
-- 심사팀이 방문했을 때 앱 정보와 지원 방법이 명확히 보임
-- ⚠️ `/issues`만 단독으로 사용하면 빈 페이지로 보여 1.5 Safety 거절 위험
+- GitHub Pages로 제공되는 독립 웹페이지 (GitHub UI 없이 깔끔하게 표시)
+- 앱 소개 + 기능 + 사용법 + 지원 안내 포함
+- Guideline 1.5 대응 완료
 
 #### 개인정보 처리방침 URL (Privacy Policy URL)
 ```
-https://github.com/moonkj/Scrolly-App/blob/main/privacy-policy.md
+https://moonkj.github.io/Scrolly-App/privacy-policy
 ```
+- GitHub Pages로 제공되는 독립 웹페이지
 - App Store Connect 필수 항목
 - 앱 내에서도 확인 가능하지만, **공개 URL로 별도 등록 필수**
-- 현재 GitHub repo에 `privacy-policy.md` 파일이 존재하므로 즉시 사용 가능
-- 나중에 GitHub Pages로 이전 시 URL 교체 권장
 
 #### 마케팅 URL (선택)
 ```

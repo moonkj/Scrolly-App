@@ -48,8 +48,8 @@ You can also browse [existing issues](https://github.com/moonkj/Scrolly-App/issu
 Scrolly collects **no data**. All settings are stored locally on your device.
 No analytics, no tracking, no network requests.
 
-- [Privacy Policy](https://github.com/moonkj/Scrolly-App/blob/main/privacy-policy.md)
-- [Terms of Service](https://github.com/moonkj/Scrolly-App/blob/main/terms-of-service.md)
+- [Privacy Policy](https://moonkj.github.io/Scrolly-App/privacy-policy)
+- [Terms of Service](https://moonkj.github.io/Scrolly-App/terms-of-service)
 
 ---
 
