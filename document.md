@@ -22,13 +22,13 @@
 
 ### 앱 이름 (Name, 30자 이내)
 ```
-Ko: Scrolly - 오토스크롤러
-En: Scrolly - Auto Scroller
-Ja: Scrolly - 自動スクローラー
-Zh: Scrolly - 自动滚屏
-Fr: Scrolly - Défilement Auto
-Es: Scrolly - Desplazamiento Auto
-Hi: Scrolly - ऑटो स्क्रॉलर
+Ko: Scrolly - 오토웹스크롤러
+En: Scrolly - Auto Web Scroller
+Ja: Scrolly - 自動Webスクローラー
+Zh: Scrolly - 自动网页滚屏
+Fr: Scrolly - Défilement Web Auto
+Es: Scrolly - Scroll Web Auto
+Hi: Scrolly - ऑटो वेब स्क्रॉलर
 ```
 
 ### 부제목 (Subtitle, 30자 이내)
