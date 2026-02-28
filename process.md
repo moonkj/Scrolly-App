@@ -413,6 +413,16 @@
 #### 빌드 및 배포
 - Release 빌드 → 실기기(iPhone Air) 설치 완료
 
+### 앱 내부 UI 아이콘 교체 (Icon.png)
+
+#### 문제
+- `Main.html` 상단에 표시되는 아이콘(`Resources/Icon.png`)이 이전 디자인 그대로 유지됨
+- 앱아이콘(`Icon-1024.png`)과 앱 실행 화면 아이콘이 불일치
+
+#### 수정
+- `Icon-1024.png`(새 아이콘)를 128×128px로 리사이즈 → `Resources/Icon.png` 교체
+- 실기기 재설치 + App Store Connect 재업로드 완료
+
 ## 2026-02-28 (App Store 심사 거절 대응 + 빌드 2 업로드)
 
 ### App Store 심사 거절 사유 2건 수정
