@@ -20,15 +20,27 @@
 
 ## 2. 앱 이름 / 부제목
 
-### 앱 이름
+### 앱 이름 (Name, 30자 이내)
 ```
-Scrolly
+Ko: Scrolly - 오토스크롤러
+En: Scrolly - Auto Scroller
+Ja: Scrolly - 自動スクローラー
+Zh: Scrolly - 自动滚屏
+Fr: Scrolly - Défilement Auto
+Es: Scrolly - Desplazamiento Auto
+Hi: Scrolly - ऑटो स्क्रॉलर
 ```
 
 ### 부제목 (Subtitle, 30자 이내)
+> ⚠️ "Safari" 상표 문제로 부제목에서도 제거
 ```
-Ko: 자동 스크롤 Safari 확장
-En: Auto Scroll for Safari
+Ko: 웹페이지 자동 스크롤
+En: Auto Scroll Any Web Page
+Ja: ウェブ自動スクロール拡張
+Zh: 自动滚动任意网页
+Fr: Défilement automatique web
+Es: Desplazamiento automático web
+Hi: किसी भी वेब पेज को ऑटो स्क्रॉल
 ```
 
 ---
@@ -635,7 +647,7 @@ En: Initial release — speed, direction, loop, timer, auto-pause
 
 | 항목 | URL | 필수 여부 |
 |------|-----|----------|
-| **지원 URL** | `https://github.com/moonkj/Scrolly-App/issues` | 필수 |
+| **지원 URL** | `https://github.com/moonkj/Scrolly-App` | 필수 |
 | **개인정보 처리방침 URL** | `https://github.com/moonkj/Scrolly-App/blob/main/privacy-policy.md` | 필수 |
 | **마케팅 URL** | `https://github.com/moonkj/Scrolly-App` | 선택 |
 
@@ -643,11 +655,11 @@ En: Initial release — speed, direction, loop, timer, auto-pause
 
 #### 지원 URL
 ```
-https://github.com/moonkj/Scrolly-App/issues
+https://github.com/moonkj/Scrolly-App
 ```
-- GitHub Issues 페이지 — 사용자가 버그 신고, 기능 요청, 문의 가능
-- 별도 계정 없이 누구나 확인 가능 (로그인 없이 읽기 가능)
-- 심사팀도 이 URL로 연락 가능하므로 반드시 접근 가능 상태 유지
+- README.md에 앱 소개 + 지원 안내 (Issues 링크 포함) 작성
+- 심사팀이 방문했을 때 앱 정보와 지원 방법이 명확히 보임
+- ⚠️ `/issues`만 단독으로 사용하면 빈 페이지로 보여 1.5 Safety 거절 위험
 
 #### 개인정보 처리방침 URL (Privacy Policy URL)
 ```

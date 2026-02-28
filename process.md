@@ -396,6 +396,23 @@
 - 번들 ID(`com.kjmoon.Scrolly`), 타겟 이름, 소스 코드, 앱 기능에는 영향 없음
 - 결과: `~/Desktop/Scrolly_IPA/Scrolly.ipa` (v1.0.0 Build 1)
 
+## 2026-02-28 (앱 아이콘 수정)
+
+### 아이콘 디자인 변경 (Icon-1024.png)
+
+#### 변경 내용
+- **"Scrolly" 텍스트 제거**: 아이콘 하단 텍스트 삭제
+- **S 심볼 위치 조정**: 텍스트 제거로 생긴 여백을 보정하기 위해 60px 아래로 이동
+
+#### 작업 방식
+- Python + Pillow + NumPy 사용
+- 2D 2차 다항식 피팅으로 흰색(S 심볼 + 텍스트) 영역의 그라디언트 배경 복원
+- S 심볼 마스크 추출 (y < 820 기준) 후 60px 이동 합성
+- 백업: `Icon-1024_backup.png`
+
+#### 빌드 및 배포
+- Release 빌드 → 실기기(iPhone Air) 설치 완료
+
 ## 2026-02-26 (App Store Connect 현지화 문서 정비)
 
 ### document.md — 다국어 번역 추가
