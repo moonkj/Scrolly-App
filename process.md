@@ -396,6 +396,28 @@
 - 번들 ID(`com.kjmoon.Scrolly`), 타겟 이름, 소스 코드, 앱 기능에는 영향 없음
 - 결과: `~/Desktop/Scrolly_IPA/Scrolly.ipa` (v1.0.0 Build 1)
 
+## 2026-03-03 (content.js 버그·보안·성능 수정 4건)
+
+### Fix 1 — Object.assign 화이트리스트 (content.js)
+- **원인**: `Object.assign(settings, message)`로 외부 메시지를 그대로 병합 → `__proto__` 등 예상치 못한 키 오염 가능
+- **수정**: 허용 키 배열(`SETTINGS_KEYS`) 루프로 교체, 알 수 없는 키 차단
+
+### Fix 2 — contentAware dead code 전체 제거 (content.js)
+- **원인**: `checkContentAware()` / `AD_SELECTORS` / `originalSpeed` / `contentAwareTimer` 선언은 있으나 함수가 어디서도 호출되지 않는 미완성 dead code
+- **수정**: 관련 코드 전체 삭제 (121줄 감소), `stopScroll()` 내 `originalSpeed` 잔여 참조도 제거
+
+### Fix 3 — scrollTarget 주기적 재탐지 (content.js)
+- **원인**: `startScroll()` 시점에만 scroll container 캐싱 → 무한 스크롤 사이트에서 동적 변경 시 스크롤 중단
+- **수정**: `scrollTargetTimer` 카운터 추가, 300프레임(≈5초)마다 `getScrollTarget()` 재호출, container 변경 시 `will-change` 이관
+
+### Fix 4 — main.dart 문서 오류 수정
+- **원인**: `main.dart` 자동 일시정지 설명에 "1.5초 후 자동 재개"라 기재 → 실제 content.js는 3초
+- **수정**: "1.5초" → "3초"
+
+### 테스트
+- updateSettings 화이트리스트 테스트 1개 추가
+- **104개 전부 통과**
+
 ## 2026-02-28 (앱 아이콘 수정)
 
 ### 아이콘 디자인 변경 (Icon-1024.png)
