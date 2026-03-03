@@ -244,6 +244,14 @@ describe('updateSettings message', () => {
     expect(saved.speed).toBe(3);
     expect(saved.direction).toBe('up');
   });
+
+  test('unknown keys in message are ignored (whitelist)', () => {
+    sendMsg(listener, 'updateSettings', { speed: 5, __proto__: { hacked: true }, unknown: 'x' });
+    const saved = JSON.parse(localStorage.getItem('aws_settings'));
+    expect(saved.speed).toBe(5);
+    expect(saved.unknown).toBeUndefined();
+    expect({}.hacked).toBeUndefined();
+  });
 });
 
 // ─── getState message ─────────────────────────────────────────────────────────

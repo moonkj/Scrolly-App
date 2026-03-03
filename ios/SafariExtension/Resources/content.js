@@ -27,14 +27,11 @@
   let tapTimeout           = null;
   let gestureInhibitUntil  = 0;  // inhibit gestures briefly after popup interaction
 
-  // Content-aware
-  let originalSpeed = null;
-
   // Scroll engine
-  let scrollTarget      = null;  // cached scroll target element
-  let lastRafTime       = null;  // for delta-time calculation
-  let contentAwareTimer = 0;     // throttle: checkContentAware every 60 frames
-  let spaCheckTimer     = 0;     // throttle: SPA widget re-inject check every 120 frames
+  let scrollTarget       = null;  // cached scroll target element
+  let lastRafTime        = null;  // for delta-time calculation
+  let spaCheckTimer      = 0;     // throttle: SPA widget re-inject check every 120 frames
+  let scrollTargetTimer  = 0;     // throttle: re-detect scroll container every 300 frames (~5s)
 
   // Widget
   let widget              = null;
@@ -158,52 +155,6 @@
     return document.documentElement;
   }
 
-  // ─── Content-Aware Speed ──────────────────────────────────────────────────────
-
-  const AD_SELECTORS = [
-    '.ad', '.advertisement', '.ads', '#ad',
-    '[class*="ad-"]', '[id*="advertisement"]',
-    '.sponsor', '.promoted', '.banner',
-    'iframe[src*="ads"]', 'iframe[src*="doubleclick"]'
-  ].join(',');
-
-  function checkContentAware() {
-    if (!settings.contentAware) return;
-    const viewH = window.innerHeight;
-
-    let adFound = false;
-    try {
-      for (const el of document.querySelectorAll(AD_SELECTORS)) {
-        const r = el.getBoundingClientRect();
-        if (r.top < viewH && r.bottom > 0) { adFound = true; break; }
-      }
-    } catch (_) {}
-
-    let imgCount = 0;
-    if (!adFound) {
-      try {
-        for (const img of document.querySelectorAll('img')) {
-          if (img.naturalWidth <= 200) continue;
-          const r = img.getBoundingClientRect();
-          if (r.top < viewH && r.bottom > 0 && ++imgCount >= 3) break;
-        }
-      } catch (_) {}
-    }
-
-    const imageHeavy = imgCount >= 3;
-
-    if (adFound && originalSpeed === null) {
-      originalSpeed  = settings.speed;
-      settings.speed = Math.min(20, settings.speed * 3);
-    } else if (imageHeavy && originalSpeed === null) {
-      originalSpeed  = settings.speed;
-      settings.speed = Math.max(1, Math.round(settings.speed * 0.5));
-    } else if (!adFound && !imageHeavy && originalSpeed !== null) {
-      settings.speed = originalSpeed;
-      originalSpeed  = null;
-    }
-  }
-
   // ─── Scroll Loop ──────────────────────────────────────────────────────────────
 
   // Quadratic speed curve (pixels per second):
@@ -222,6 +173,18 @@
       if (!document.getElementById('__aws_widget__')) {
         widget = null; widgetPlayBtn = null; // reset stale JS refs before recreating
         createWidget();
+      }
+    }
+
+    // scrollTarget re-detection: every 300 frames (~5s) for infinite-scroll sites
+    // where the scroll container may change dynamically after initial detection
+    if (++scrollTargetTimer >= 300) {
+      scrollTargetTimer = 0;
+      const newTarget = getScrollTarget();
+      if (newTarget !== scrollTarget) {
+        try { scrollTarget.style.setProperty('will-change', 'auto'); } catch (_) {}
+        scrollTarget = newTarget;
+        try { scrollTarget.style.setProperty('will-change', 'scroll-position'); } catch (_) {}
       }
     }
 
@@ -271,11 +234,12 @@
 
   function startScroll() {
     if (isScrolling) return;
-    isScrolling       = true;
-    userScrolling     = false; // clear any stale autoPause state
-    lastRafTime       = null;
-    spaCheckTimer     = 0;
-    scrollTarget      = getScrollTarget();
+    isScrolling        = true;
+    userScrolling      = false; // clear any stale autoPause state
+    lastRafTime        = null;
+    spaCheckTimer      = 0;
+    scrollTargetTimer  = 0;
+    scrollTarget       = getScrollTarget();
     // Hint to browser compositor to pre-render scroll tiles
     try { scrollTarget.style.setProperty('will-change', 'scroll-position'); } catch (_) {}
     scrollInterval = requestAnimationFrame(doScroll);
@@ -295,7 +259,6 @@
     clearTimeout(timerTimeout);           timerTimeout   = null;
     clearTimeout(userScrollTimer);        userScrollTimer = null;
     userScrolling = false;
-    if (originalSpeed !== null) { settings.speed = originalSpeed; originalSpeed = null; }
     try { if (scrollTarget) scrollTarget.style.setProperty('will-change', 'auto'); } catch (_) {}
     releaseWakeLock();
     updateWidgetUI();
@@ -668,7 +631,8 @@
       case 'updateSettings': {
         const prevDirection  = settings.direction;
         const prevShowWidget = settings.showWidget;
-        Object.assign(settings, message);
+        const SETTINGS_KEYS = ['speed','direction','loop','autoPause','timerMins','gestureShortcuts','showWidget'];
+        for (const k of SETTINGS_KEYS) { if (k in message) settings[k] = message[k]; }
         // Any popup interaction: inhibit gesture shortcuts for 800ms to avoid
         // spurious double-tap from iOS touch-through on popup open/close
         gestureInhibitUntil = Date.now() + 800;

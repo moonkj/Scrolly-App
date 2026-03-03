@@ -144,7 +144,7 @@ class MainScreen extends StatelessWidget {
                       icon: Icons.pan_tool_rounded,
                       color: Color(0xFFFF453A),
                       title: '자동 일시정지',
-                      subtitle: '화면 터치 즉시 멈춤, 1.5초 후 자동 재개',
+                      subtitle: '화면 터치 즉시 멈춤, 3초 후 자동 재개',
                     ),
                     _FeatureRow(
                       icon: Icons.timer_rounded,
