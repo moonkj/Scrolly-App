@@ -37,6 +37,7 @@
   let widget              = null;
   let widgetPlayBtn       = null;  // direct reference to avoid getElementById miss
   let widgetCollapsed     = false;
+  let widgetOrientation   = 'vertical';  // 'vertical' | 'horizontal'
   let cachedWidgetPos     = null;  // global position loaded from browser.storage.local (cross-site)
   let darkModeListener    = null;  // stored ref to prevent duplicate matchMedia listeners
   let isDragging      = false;
@@ -52,7 +53,8 @@
   const SETTINGS_KEY         = 'aws_settings';
   const WIDGET_POS_KEY       = `aws_widget_pos_${location.hostname}`;
   const WIDGET_POS_GLOBAL_KEY = 'aws_widget_pos';
-  const WIDGET_COLLAPSED_KEY = 'aws_widget_collapsed';
+  const WIDGET_COLLAPSED_KEY  = 'aws_widget_collapsed';
+  const WIDGET_ORIENTATION_KEY = 'aws_widget_orientation';
 
   // ─── Wake Lock ────────────────────────────────────────────────────────────────
 
@@ -84,9 +86,14 @@
     try {
       if (localStorage.getItem(WIDGET_COLLAPSED_KEY) === '1') widgetCollapsed = true;
     } catch (_) {}
+    // Sync: restore widget orientation
+    try {
+      const o = localStorage.getItem(WIDGET_ORIENTATION_KEY);
+      if (o === 'horizontal') widgetOrientation = 'horizontal';
+    } catch (_) {}
     // Async: override with extension storage (cross-domain, survives navigation)
     try {
-      const p = browser.storage?.local?.get([SETTINGS_KEY, WIDGET_COLLAPSED_KEY, WIDGET_POS_GLOBAL_KEY]);
+      const p = browser.storage?.local?.get([SETTINGS_KEY, WIDGET_COLLAPSED_KEY, WIDGET_ORIENTATION_KEY, WIDGET_POS_GLOBAL_KEY]);
       if (p) p.then(result => {
         if (result?.[SETTINGS_KEY]) {
           Object.assign(settings, result[SETTINGS_KEY]);
@@ -95,6 +102,9 @@
         if (result?.[WIDGET_COLLAPSED_KEY] !== undefined) {
           widgetCollapsed = result[WIDGET_COLLAPSED_KEY];
           _applyWidgetCollapsedState();
+        }
+        if (result?.[WIDGET_ORIENTATION_KEY] !== undefined) {
+          widgetOrientation = result[WIDGET_ORIENTATION_KEY];
         }
         if (result?.[WIDGET_POS_GLOBAL_KEY]) {
           const raw = result[WIDGET_POS_GLOBAL_KEY];
@@ -379,22 +389,54 @@
     widget    = document.createElement('div');
     widget.id = '__aws_widget__';
 
+    const isHoriz = widgetOrientation === 'horizontal';
+
     const posStyle = savedPos
       ? `left:${Math.max(0, Math.min(window.innerWidth  - 60, savedPos.x))}px; top:${Math.max(0, Math.min(window.innerHeight - 180, savedPos.y))}px;`
       : `right:16px; bottom:120px;`;
 
-    widget.style.cssText = `
-      position:fixed; ${posStyle}
-      z-index:2147483647;
-      width:52px; padding:10px 6px 10px;
-      border-radius:14px;
-      font-family:-apple-system,sans-serif; font-size:12px;
-      box-shadow:0 4px 24px rgba(0,0,0,0.35);
-      display:flex; flex-direction:column; align-items:center; gap:6px;
-      touch-action:none; user-select:none; -webkit-user-select:none;
-      cursor:grab;
-    `;
+    if (isHoriz) {
+      widget.style.cssText = `
+        position:fixed; ${posStyle}
+        z-index:2147483647;
+        width:auto; padding:8px 10px;
+        border-radius:14px;
+        font-family:-apple-system,sans-serif; font-size:12px;
+        box-shadow:0 4px 24px rgba(0,0,0,0.35);
+        display:flex; flex-direction:row; align-items:center; gap:8px;
+        touch-action:none; user-select:none; -webkit-user-select:none;
+        cursor:grab;
+      `;
+    } else {
+      widget.style.cssText = `
+        position:fixed; ${posStyle}
+        z-index:2147483647;
+        width:52px; padding:10px 6px 10px;
+        border-radius:14px;
+        font-family:-apple-system,sans-serif; font-size:12px;
+        box-shadow:0 4px 24px rgba(0,0,0,0.35);
+        display:flex; flex-direction:column; align-items:center; gap:6px;
+        touch-action:none; user-select:none; -webkit-user-select:none;
+        cursor:grab;
+      `;
+    }
     applyWidgetTheme();
+
+    // Orient button (toggle layout direction)
+    const orientBtn = document.createElement('button');
+    orientBtn.id = '__aws_orient_btn__';
+    orientBtn.textContent = isHoriz ? '↕' : '↔';
+    orientBtn.style.cssText = `
+      width:22px; height:22px; border:none; border-radius:50%;
+      background:transparent; font-size:14px; line-height:1;
+      cursor:pointer; opacity:0.6; padding:0;
+      color:${isDark() ? '#fff' : '#1C1C1E'};
+      flex-shrink:0;
+    `;
+    orientBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleWidgetOrientation();
+    });
 
     // Collapse button
     const colBtn = document.createElement('button');
@@ -418,7 +460,7 @@
     speedLabel.style.cssText = 'font-weight:700; font-size:12px; text-align:center; flex-shrink:0;';
     speedLabel.textContent = `${settings.speed}x`;
 
-    // Vertical slider
+    // Slider (vertical or horizontal based on orientation)
     const sliderWrap = document.createElement('div');
     sliderWrap.id = '__aws_slider_wrap__';
     sliderWrap.style.cssText = 'display:flex; justify-content:center; align-items:center; flex:1;';
@@ -427,15 +469,24 @@
     miniSlider.type = 'range';
     miniSlider.min = '1'; miniSlider.max = '20'; miniSlider.step = '1';
     miniSlider.value = String(settings.speed);
-    miniSlider.style.cssText = `
-      -webkit-appearance: slider-vertical;
-      writing-mode: vertical-lr;
-      direction: rtl;
-      width: 28px;
-      height: 110px;
-      cursor: pointer;
-      accent-color: #30D158;
-    `;
+    if (isHoriz) {
+      miniSlider.style.cssText = `
+        width: 110px;
+        height: 28px;
+        cursor: pointer;
+        accent-color: #30D158;
+      `;
+    } else {
+      miniSlider.style.cssText = `
+        -webkit-appearance: slider-vertical;
+        writing-mode: vertical-lr;
+        direction: rtl;
+        width: 28px;
+        height: 110px;
+        cursor: pointer;
+        accent-color: #30D158;
+      `;
+    }
     miniSlider.addEventListener('input', (e) => {
       e.stopPropagation();
       settings.speed = parseInt(miniSlider.value, 10);
@@ -447,7 +498,7 @@
 
     sliderWrap.appendChild(miniSlider);
 
-    // Play / Pause button (bottom)
+    // Play / Pause button
     const playBtn = document.createElement('button');
     playBtn.id = '__aws_play_btn__';
     playBtn.style.cssText = `
@@ -463,17 +514,31 @@
     });
     playBtn.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
 
-    widget.appendChild(colBtn);
-    widget.appendChild(speedLabel);
-    widget.appendChild(sliderWrap);
-    widget.appendChild(playBtn);
+    if (isHoriz) {
+      // Horizontal: orientBtn, colBtn, speedLabel, slider, playBtn in a row
+      widget.appendChild(orientBtn);
+      widget.appendChild(colBtn);
+      widget.appendChild(speedLabel);
+      widget.appendChild(sliderWrap);
+      widget.appendChild(playBtn);
+    } else {
+      // Vertical: header row (colBtn + orientBtn), then speedLabel, slider, playBtn
+      const headerRow = document.createElement('div');
+      headerRow.style.cssText = 'display:flex; justify-content:space-between; align-items:center; width:100%;';
+      headerRow.appendChild(colBtn);
+      headerRow.appendChild(orientBtn);
+      widget.appendChild(headerRow);
+      widget.appendChild(speedLabel);
+      widget.appendChild(sliderWrap);
+      widget.appendChild(playBtn);
+    }
 
     // Apply collapsed state using local refs (widget not yet in DOM, so getElementById unavailable)
     if (widgetCollapsed) {
       sliderWrap.style.display = 'none';
       speedLabel.style.display = 'none';
       colBtn.textContent       = '+';
-      widget.style.width       = '44px';
+      widget.style.width = isHoriz ? 'auto' : '44px';
     }
 
     document.body.appendChild(widget);
@@ -510,8 +575,10 @@
     widget.style.background = dark ? 'rgba(44,44,46,0.95)' : 'rgba(255,255,255,0.95)';
     widget.style.color       = dark ? '#FFFFFF' : '#1C1C1E';
     widget.style.border      = dark ? '1px solid #3A3A3C' : '1px solid #D1D1D6';
-    const colBtn = document.getElementById('__aws_col_btn__');
-    if (colBtn) colBtn.style.color = dark ? '#fff' : '#1C1C1E';
+    const colBtn    = document.getElementById('__aws_col_btn__');
+    const orientBtn = document.getElementById('__aws_orient_btn__');
+    if (colBtn)    colBtn.style.color    = dark ? '#fff' : '#1C1C1E';
+    if (orientBtn) orientBtn.style.color = dark ? '#fff' : '#1C1C1E';
   }
 
   function _applyWidgetCollapsedState() {
@@ -522,7 +589,9 @@
     if (sliderWrap) sliderWrap.style.display = widgetCollapsed ? 'none' : 'flex';
     if (speedLabel) speedLabel.style.display = widgetCollapsed ? 'none' : 'block';
     if (colBtn)     colBtn.textContent       = widgetCollapsed ? '+' : '–';
-    widget.style.width                       = widgetCollapsed ? '44px' : '52px';
+    widget.style.width = widgetOrientation === 'horizontal'
+      ? 'auto'
+      : (widgetCollapsed ? '44px' : '52px');
   }
 
   function _styleWidgetPlayBtn(btn) {
@@ -553,6 +622,25 @@
       if (p) p.catch(() => {});
     } catch (_) {}
     _applyWidgetCollapsedState();
+  }
+
+  function toggleWidgetOrientation() {
+    widgetOrientation = widgetOrientation === 'vertical' ? 'horizontal' : 'vertical';
+    // Capture current drag position before destroying widget
+    const prevLeft = widget?.style.left;
+    const prevTop  = widget?.style.top;
+    // Persist: localStorage (same-site, sync) + browser.storage.local (cross-site, async)
+    try { localStorage.setItem(WIDGET_ORIENTATION_KEY, widgetOrientation); } catch (_) {}
+    try {
+      const p = browser.storage?.local?.set({ [WIDGET_ORIENTATION_KEY]: widgetOrientation });
+      if (p) p.catch(() => {});
+    } catch (_) {}
+    // Recreate widget with new orientation
+    if (widget) { widget.remove(); widget = null; widgetPlayBtn = null; }
+    createWidget();
+    // Restore dragged position (if any)
+    if (prevLeft && widget) { widget.style.left = prevLeft; widget.style.top = prevTop; }
+    setTimeout(_clampWidgetToViewport, 0);
   }
 
   function showWidget() {

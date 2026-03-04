@@ -1022,3 +1022,89 @@ describe('battery — autoPause RAF pause/resume', () => {
     expect(global.requestAnimationFrame.mock.calls.length).toBeGreaterThan(rafCallsBefore);
   });
 });
+
+// ─── Widget orientation toggle ────────────────────────────────────────────────
+
+describe('widget orientation toggle', () => {
+  beforeEach(() => { loadContent(); });
+
+  test('vertical 모드에서 orientBtn이 존재하고 ↔ 아이콘', () => {
+    const orientBtn = document.getElementById('__aws_orient_btn__');
+    expect(orientBtn).not.toBeNull();
+    expect(orientBtn.textContent).toBe('↔');
+  });
+
+  test('vertical 모드에서 headerRow에 colBtn + orientBtn이 나란히 존재', () => {
+    const colBtn    = document.getElementById('__aws_col_btn__');
+    const orientBtn = document.getElementById('__aws_orient_btn__');
+    expect(colBtn.parentElement).toBe(orientBtn.parentElement);
+    expect(colBtn.parentElement.style.display).toBe('flex');
+  });
+
+  test('orientBtn 클릭 시 위젯이 가로 방향으로 전환', () => {
+    document.getElementById('__aws_orient_btn__').click();
+    const widget = document.getElementById('__aws_widget__');
+    expect(widget.style.flexDirection).toBe('row');
+  });
+
+  test('horizontal 모드에서 orientBtn이 ↕ 아이콘', () => {
+    document.getElementById('__aws_orient_btn__').click();
+    const orientBtn = document.getElementById('__aws_orient_btn__');
+    expect(orientBtn.textContent).toBe('↕');
+  });
+
+  test('horizontal 모드에서 slider에 writing-mode 없음 (가로 슬라이더)', () => {
+    document.getElementById('__aws_orient_btn__').click();
+    const slider = document.querySelector('#__aws_slider_wrap__ input[type=range]');
+    expect(slider.style.writingMode).toBeFalsy();
+  });
+
+  test('horizontal 모드에서 두 번 클릭하면 vertical로 복귀', () => {
+    const orientBtn = document.getElementById('__aws_orient_btn__');
+    orientBtn.click();
+    document.getElementById('__aws_orient_btn__').click();
+    const widget = document.getElementById('__aws_widget__');
+    expect(widget.style.flexDirection).toBe('column');
+  });
+
+  test('toggleWidgetOrientation() → localStorage에 orientation 저장', () => {
+    document.getElementById('__aws_orient_btn__').click();
+    expect(localStorage.getItem('aws_widget_orientation')).toBe('horizontal');
+  });
+
+  test('toggleWidgetOrientation() → browser.storage.local.set 호출', () => {
+    document.getElementById('__aws_orient_btn__').click();
+    const calls = browser.storage.local.set.mock.calls;
+    const saved = calls.find(c => c[0].aws_widget_orientation !== undefined);
+    expect(saved).toBeDefined();
+    expect(saved[0].aws_widget_orientation).toBe('horizontal');
+  });
+
+  test('orientation 전환 후 widgetCollapsed 상태 보존 (collapsed → 여전히 collapsed)', () => {
+    document.getElementById('__aws_col_btn__').click(); // collapse
+    expect(document.getElementById('__aws_col_btn__').textContent).toBe('+');
+    document.getElementById('__aws_orient_btn__').click(); // switch to horizontal
+    expect(document.getElementById('__aws_col_btn__').textContent).toBe('+');
+  });
+
+  test('loadSiteSettings: localStorage에서 horizontal orientation 로드', () => {
+    localStorage.setItem('aws_widget_orientation', 'horizontal');
+    jest.resetModules();
+    require(CONTENT_PATH);
+    const widget = document.getElementById('__aws_widget__');
+    expect(widget.style.flexDirection).toBe('row');
+  });
+
+  test('loadSiteSettings: browser.storage.local에서 horizontal orientation 로드', () => {
+    global.browser.storage.local.get = jest.fn().mockReturnValue({
+      then: (cb) => {
+        cb({ aws_widget_orientation: 'horizontal' });
+        return { catch: () => {} };
+      },
+    });
+    jest.resetModules();
+    require(CONTENT_PATH);
+    const widget = document.getElementById('__aws_widget__');
+    expect(widget.style.flexDirection).toBe('row');
+  });
+});
