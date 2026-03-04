@@ -23,8 +23,11 @@
       min_unit:       '분',
       gesture_label:  '제스처 단축키',
       gesture_desc:   '더블탭: 일시정지/재개 · 트리플탭: 속도 초기화',
-      widget_label:   '미니 컨트롤 표시',
-      widget_desc:    '페이지 위에 드래그 가능한 위젯 표시',
+      widget_label:       '미니 컨트롤 표시',
+      widget_desc:        '페이지 위에 드래그 가능한 위젯 표시',
+      widget_orient_label:'위젯 방향',
+      widget_orient_v:    '세로',
+      widget_orient_h:    '가로',
       start:          '시작',
       stop:           '정지',
     },
@@ -48,8 +51,11 @@
       min_unit:       ' min',
       gesture_label:  'Gesture Shortcuts',
       gesture_desc:   'Double tap: pause/resume · Triple tap: reset speed',
-      widget_label:   'Show Mini Control',
-      widget_desc:    'Show draggable widget on page',
+      widget_label:       'Show Mini Control',
+      widget_desc:        'Show draggable widget on page',
+      widget_orient_label:'Widget Layout',
+      widget_orient_v:    'Vertical',
+      widget_orient_h:    'Horizontal',
       start:          'Start',
       stop:           'Stop',
     },
@@ -73,8 +79,11 @@
       min_unit:       '分',
       gesture_label:  'ジェスチャー',
       gesture_desc:   'ダブルタップ: 一時停止/再開 · トリプル: 速度リセット',
-      widget_label:   'ミニコントロール表示',
-      widget_desc:    'ページ上にドラッグ可能なウィジェット',
+      widget_label:       'ミニコントロール表示',
+      widget_desc:        'ページ上にドラッグ可能なウィジェット',
+      widget_orient_label:'向き',
+      widget_orient_v:    '縦',
+      widget_orient_h:    '横',
       start:          '開始',
       stop:           '停止',
     },
@@ -98,8 +107,11 @@
       min_unit:       '分钟',
       gesture_label:  '手势快捷键',
       gesture_desc:   '双击：暂停/恢复 · 三击：重置速度',
-      widget_label:   '显示迷你控制',
-      widget_desc:    '在页面上显示可拖动小组件',
+      widget_label:       '显示迷你控制',
+      widget_desc:        '在页面上显示可拖动小组件',
+      widget_orient_label:'方向',
+      widget_orient_v:    '竖向',
+      widget_orient_h:    '横向',
       start:          '开始',
       stop:           '停止',
     },
@@ -123,8 +135,11 @@
       min_unit:       ' min',
       gesture_label:  'Raccourcis gestuels',
       gesture_desc:   'Double: pause/reprise · Triple: réinit. vitesse',
-      widget_label:   'Afficher mini contrôle',
-      widget_desc:    'Widget draggable sur la page',
+      widget_label:       'Afficher mini contrôle',
+      widget_desc:        'Widget draggable sur la page',
+      widget_orient_label:'Disposition',
+      widget_orient_v:    'Vertical',
+      widget_orient_h:    'Horizontal',
       start:          'Démarrer',
       stop:           'Arrêter',
     },
@@ -148,8 +163,11 @@
       min_unit:       ' मिनट',
       gesture_label:  'जेस्चर शॉर्टकट',
       gesture_desc:   'डबल टैप: पॉज़/जारी · ट्रिपल: रीसेट',
-      widget_label:   'मिनी कंट्रोल दिखाएं',
-      widget_desc:    'पेज पर ड्रैग करने योग्य विजेट',
+      widget_label:       'मिनी कंट्रोल दिखाएं',
+      widget_desc:        'पेज पर ड्रैग करने योग्य विजेट',
+      widget_orient_label:'लेआउट',
+      widget_orient_v:    'लंबवत',
+      widget_orient_h:    'क्षैतिज',
       start:          'शुरू',
       stop:           'रोकें',
     },
@@ -183,7 +201,8 @@
   const loopToggle       = document.getElementById('loopToggle');
   const autoPauseToggle  = document.getElementById('autoPauseToggle');
   const gestureToggle    = document.getElementById('gestureToggle');
-  const showWidgetToggle = document.getElementById('showWidgetToggle');
+  const showWidgetToggle   = document.getElementById('showWidgetToggle');
+  const widgetOrientBtns   = document.querySelectorAll('#widgetOrientControl .seg-btn');
 
   // ─── Storage key ─────────────────────────────────────────────────────────────
   const SETTINGS_KEY = 'aws_settings';
@@ -197,7 +216,8 @@
     autoPause:        true,
     timerMins:        0,
     gestureShortcuts: true,
-    showWidget:       true
+    showWidget:        true,
+    widgetOrientation: 'vertical'
   };
 
   // ─── Messaging (WebExtension API) ────────────────────────────────────────────
@@ -250,6 +270,10 @@
     autoPauseToggle.checked = settings.autoPause;
     gestureToggle.checked   = settings.gestureShortcuts;
     showWidgetToggle.checked = settings.showWidget;
+
+    widgetOrientBtns.forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.value === settings.widgetOrientation);
+    });
 
     timerSlider.value = settings.timerMins;
     timerValue.textContent = settings.timerMins === 0
@@ -315,6 +339,14 @@
     settings.showWidget = showWidgetToggle.checked;
     send(settings.showWidget ? 'showWidget' : 'hideWidget');
     pushSettings();
+  });
+
+  widgetOrientBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      settings.widgetOrientation = btn.dataset.value;
+      renderUI();
+      pushSettings();
+    });
   });
 
   // ─── Init ─────────────────────────────────────────────────────────────────────

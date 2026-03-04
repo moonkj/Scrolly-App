@@ -12,7 +12,8 @@
     autoPause:        true,
     timerMins:        0,
     gestureShortcuts: true,
-    showWidget:       true
+    showWidget:       true,
+    widgetOrientation:'vertical'  // 'vertical' | 'horizontal'
   };
 
   let timerTimeout = null;
@@ -37,7 +38,6 @@
   let widget              = null;
   let widgetPlayBtn       = null;  // direct reference to avoid getElementById miss
   let widgetCollapsed     = false;
-  let widgetOrientation   = 'vertical';  // 'vertical' | 'horizontal'
   let cachedWidgetPos     = null;  // global position loaded from browser.storage.local (cross-site)
   let darkModeListener    = null;  // stored ref to prevent duplicate matchMedia listeners
   let isDragging      = false;
@@ -54,7 +54,6 @@
   const WIDGET_POS_KEY       = `aws_widget_pos_${location.hostname}`;
   const WIDGET_POS_GLOBAL_KEY = 'aws_widget_pos';
   const WIDGET_COLLAPSED_KEY  = 'aws_widget_collapsed';
-  const WIDGET_ORIENTATION_KEY = 'aws_widget_orientation';
 
   // ─── Wake Lock ────────────────────────────────────────────────────────────────
 
@@ -86,14 +85,9 @@
     try {
       if (localStorage.getItem(WIDGET_COLLAPSED_KEY) === '1') widgetCollapsed = true;
     } catch (_) {}
-    // Sync: restore widget orientation
-    try {
-      const o = localStorage.getItem(WIDGET_ORIENTATION_KEY);
-      if (o === 'horizontal') widgetOrientation = 'horizontal';
-    } catch (_) {}
     // Async: override with extension storage (cross-domain, survives navigation)
     try {
-      const p = browser.storage?.local?.get([SETTINGS_KEY, WIDGET_COLLAPSED_KEY, WIDGET_ORIENTATION_KEY, WIDGET_POS_GLOBAL_KEY]);
+      const p = browser.storage?.local?.get([SETTINGS_KEY, WIDGET_COLLAPSED_KEY, WIDGET_POS_GLOBAL_KEY]);
       if (p) p.then(result => {
         if (result?.[SETTINGS_KEY]) {
           Object.assign(settings, result[SETTINGS_KEY]);
@@ -102,9 +96,6 @@
         if (result?.[WIDGET_COLLAPSED_KEY] !== undefined) {
           widgetCollapsed = result[WIDGET_COLLAPSED_KEY];
           _applyWidgetCollapsedState();
-        }
-        if (result?.[WIDGET_ORIENTATION_KEY] !== undefined) {
-          widgetOrientation = result[WIDGET_ORIENTATION_KEY];
         }
         if (result?.[WIDGET_POS_GLOBAL_KEY]) {
           const raw = result[WIDGET_POS_GLOBAL_KEY];
@@ -393,7 +384,7 @@
     widget    = document.createElement('div');
     widget.id = '__aws_widget__';
 
-    const isHoriz = widgetOrientation === 'horizontal';
+    const isHoriz = settings.widgetOrientation === 'horizontal';
 
     const posStyle = savedPos
       ? `left:${Math.max(0, Math.min(window.innerWidth  - 60, savedPos.x))}px; top:${Math.max(0, Math.min(window.innerHeight - 180, savedPos.y))}px;`
@@ -425,22 +416,6 @@
       `;
     }
     applyWidgetTheme();
-
-    // Orient button (toggle layout direction)
-    const orientBtn = document.createElement('button');
-    orientBtn.id = '__aws_orient_btn__';
-    orientBtn.textContent = isHoriz ? '\u2195\uFE0E' : '\u2194\uFE0E';  // ↕/↔ + text variation selector (no emoji)
-    orientBtn.style.cssText = `
-      width:22px; height:22px; border:none; border-radius:50%;
-      background:transparent; font-size:14px; line-height:1;
-      cursor:pointer; opacity:0.6; padding:0;
-      color:${isDark() ? '#fff' : '#1C1C1E'};
-      flex-shrink:0;
-    `;
-    orientBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      toggleWidgetOrientation();
-    });
 
     // Collapse button
     const colBtn = document.createElement('button');
@@ -536,19 +511,14 @@
     playBtn.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
 
     if (isHoriz) {
-      // Horizontal: orientBtn, colBtn, speedLabel, slider, playBtn in a row
-      widget.appendChild(orientBtn);
+      // Horizontal: colBtn, speedLabel, slider, playBtn in a row
       widget.appendChild(colBtn);
       widget.appendChild(speedLabel);
       widget.appendChild(sliderWrap);
       widget.appendChild(playBtn);
     } else {
-      // Vertical: header row (colBtn + orientBtn), then speedLabel, slider, playBtn
-      const headerRow = document.createElement('div');
-      headerRow.style.cssText = 'display:flex; justify-content:space-between; align-items:center; width:100%;';
-      headerRow.appendChild(colBtn);
-      headerRow.appendChild(orientBtn);
-      widget.appendChild(headerRow);
+      // Vertical: colBtn at top, then speedLabel, slider, playBtn
+      widget.appendChild(colBtn);
       widget.appendChild(speedLabel);
       widget.appendChild(sliderWrap);
       widget.appendChild(playBtn);
@@ -596,10 +566,8 @@
     widget.style.background = dark ? 'rgba(44,44,46,0.95)' : 'rgba(255,255,255,0.95)';
     widget.style.color       = dark ? '#FFFFFF' : '#1C1C1E';
     widget.style.border      = dark ? '1px solid #3A3A3C' : '1px solid #D1D1D6';
-    const colBtn    = document.getElementById('__aws_col_btn__');
-    const orientBtn = document.getElementById('__aws_orient_btn__');
-    if (colBtn)    colBtn.style.color    = dark ? '#fff' : '#1C1C1E';
-    if (orientBtn) orientBtn.style.color = dark ? '#fff' : '#1C1C1E';
+    const colBtn = document.getElementById('__aws_col_btn__');
+    if (colBtn) colBtn.style.color = dark ? '#fff' : '#1C1C1E';
   }
 
   function _applyWidgetCollapsedState() {
@@ -610,7 +578,7 @@
     if (sliderWrap) sliderWrap.style.display = widgetCollapsed ? 'none' : 'flex';
     if (speedLabel) speedLabel.style.display = widgetCollapsed ? 'none' : 'block';
     if (colBtn)     colBtn.textContent       = widgetCollapsed ? '+' : '–';
-    widget.style.width = widgetOrientation === 'horizontal'
+    widget.style.width = settings.widgetOrientation === 'horizontal'
       ? 'auto'
       : (widgetCollapsed ? '44px' : '52px');
   }
@@ -643,25 +611,6 @@
       if (p) p.catch(() => {});
     } catch (_) {}
     _applyWidgetCollapsedState();
-  }
-
-  function toggleWidgetOrientation() {
-    widgetOrientation = widgetOrientation === 'vertical' ? 'horizontal' : 'vertical';
-    // Capture current drag position before destroying widget
-    const prevLeft = widget?.style.left;
-    const prevTop  = widget?.style.top;
-    // Persist: localStorage (same-site, sync) + browser.storage.local (cross-site, async)
-    try { localStorage.setItem(WIDGET_ORIENTATION_KEY, widgetOrientation); } catch (_) {}
-    try {
-      const p = browser.storage?.local?.set({ [WIDGET_ORIENTATION_KEY]: widgetOrientation });
-      if (p) p.catch(() => {});
-    } catch (_) {}
-    // Recreate widget with new orientation
-    if (widget) { widget.remove(); widget = null; widgetPlayBtn = null; }
-    createWidget();
-    // Restore dragged position (if any)
-    if (prevLeft && widget) { widget.style.left = prevLeft; widget.style.top = prevTop; }
-    setTimeout(_clampWidgetToViewport, 0);
   }
 
   function showWidget() {
@@ -738,9 +687,10 @@
         break;
 
       case 'updateSettings': {
-        const prevDirection  = settings.direction;
-        const prevShowWidget = settings.showWidget;
-        const SETTINGS_KEYS = ['speed','direction','loop','autoPause','timerMins','gestureShortcuts','showWidget'];
+        const prevDirection       = settings.direction;
+        const prevShowWidget      = settings.showWidget;
+        const prevWidgetOrient    = settings.widgetOrientation;
+        const SETTINGS_KEYS = ['speed','direction','loop','autoPause','timerMins','gestureShortcuts','showWidget','widgetOrientation'];
         for (const k of SETTINGS_KEYS) { if (k in message) settings[k] = message[k]; }
         // Any popup interaction: inhibit gesture shortcuts for 800ms to avoid
         // spurious double-tap from iOS touch-through on popup open/close
@@ -776,6 +726,11 @@
         if (message.showWidget !== undefined && settings.showWidget !== prevShowWidget) {
           if (settings.showWidget) showWidget();
           else hideWidget();
+        }
+        // Handle orientation change: recreate widget with new layout
+        if (message.widgetOrientation !== undefined && settings.widgetOrientation !== prevWidgetOrient) {
+          if (widget) { widget.remove(); widget = null; widgetPlayBtn = null; }
+          if (settings.showWidget) createWidget();
         }
         autoSaveSettings();
         updateWidgetUI();

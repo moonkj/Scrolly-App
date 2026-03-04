@@ -1023,88 +1023,87 @@ describe('battery — autoPause RAF pause/resume', () => {
   });
 });
 
-// ─── Widget orientation toggle ────────────────────────────────────────────────
+// ─── Widget orientation toggle (popup → updateSettings) ──────────────────────
 
 describe('widget orientation toggle', () => {
-  beforeEach(() => { loadContent(); });
+  let listener;
+  beforeEach(() => { listener = loadContent(); });
 
-  test('vertical 모드에서 orientBtn이 존재하고 ↔ 아이콘', () => {
-    const orientBtn = document.getElementById('__aws_orient_btn__');
-    expect(orientBtn).not.toBeNull();
-    expect(orientBtn.textContent).toBe('\u2194\uFE0E');
+  test('기본 vertical 모드에서 위젯 flex-direction이 column', () => {
+    expect(document.getElementById('__aws_widget__').style.flexDirection).toBe('column');
   });
 
-  test('vertical 모드에서 headerRow에 colBtn + orientBtn이 나란히 존재', () => {
-    const colBtn    = document.getElementById('__aws_col_btn__');
-    const orientBtn = document.getElementById('__aws_orient_btn__');
-    expect(colBtn.parentElement).toBe(orientBtn.parentElement);
-    expect(colBtn.parentElement.style.display).toBe('flex');
+  test('위젯 안에 orientBtn 없음 (팝업으로만 제어)', () => {
+    expect(document.getElementById('__aws_orient_btn__')).toBeNull();
   });
 
-  test('orientBtn 클릭 시 위젯이 가로 방향으로 전환', () => {
-    document.getElementById('__aws_orient_btn__').click();
-    const widget = document.getElementById('__aws_widget__');
-    expect(widget.style.flexDirection).toBe('row');
-  });
-
-  test('horizontal 모드에서 orientBtn이 ↕ 아이콘', () => {
-    document.getElementById('__aws_orient_btn__').click();
-    const orientBtn = document.getElementById('__aws_orient_btn__');
-    expect(orientBtn.textContent).toBe('\u2195\uFE0E');
+  test('updateSettings widgetOrientation=horizontal → 위젯 flex-direction row', () => {
+    sendMsg(listener, 'updateSettings', { widgetOrientation: 'horizontal' });
+    expect(document.getElementById('__aws_widget__').style.flexDirection).toBe('row');
   });
 
   test('horizontal 모드에서 slider에 writing-mode 없음 (가로 슬라이더)', () => {
-    document.getElementById('__aws_orient_btn__').click();
+    sendMsg(listener, 'updateSettings', { widgetOrientation: 'horizontal' });
     const slider = document.querySelector('#__aws_slider_wrap__ input[type=range]');
     expect(slider.style.writingMode).toBeFalsy();
   });
 
-  test('horizontal 모드에서 두 번 클릭하면 vertical로 복귀', () => {
-    const orientBtn = document.getElementById('__aws_orient_btn__');
-    orientBtn.click();
-    document.getElementById('__aws_orient_btn__').click();
-    const widget = document.getElementById('__aws_widget__');
-    expect(widget.style.flexDirection).toBe('column');
+  test('horizontal → vertical 재전환 시 flex-direction column으로 복귀', () => {
+    sendMsg(listener, 'updateSettings', { widgetOrientation: 'horizontal' });
+    sendMsg(listener, 'updateSettings', { widgetOrientation: 'vertical' });
+    expect(document.getElementById('__aws_widget__').style.flexDirection).toBe('column');
   });
 
-  test('toggleWidgetOrientation() → localStorage에 orientation 저장', () => {
-    document.getElementById('__aws_orient_btn__').click();
-    expect(localStorage.getItem('aws_widget_orientation')).toBe('horizontal');
+  test('widgetOrientation이 aws_settings에 포함되어 localStorage에 저장', () => {
+    sendMsg(listener, 'updateSettings', { widgetOrientation: 'horizontal' });
+    const saved = JSON.parse(localStorage.getItem('aws_settings'));
+    expect(saved.widgetOrientation).toBe('horizontal');
   });
 
-  test('toggleWidgetOrientation() → browser.storage.local.set 호출', () => {
-    document.getElementById('__aws_orient_btn__').click();
+  test('widgetOrientation이 browser.storage.local.set에 포함', () => {
+    sendMsg(listener, 'updateSettings', { widgetOrientation: 'horizontal' });
     const calls = browser.storage.local.set.mock.calls;
-    const saved = calls.find(c => c[0].aws_widget_orientation !== undefined);
+    const saved = calls.find(c => c[0].aws_settings?.widgetOrientation !== undefined);
     expect(saved).toBeDefined();
-    expect(saved[0].aws_widget_orientation).toBe('horizontal');
+    expect(saved[0].aws_settings.widgetOrientation).toBe('horizontal');
   });
 
   test('orientation 전환 후 widgetCollapsed 상태 보존 (collapsed → 여전히 collapsed)', () => {
     document.getElementById('__aws_col_btn__').click(); // collapse
     expect(document.getElementById('__aws_col_btn__').textContent).toBe('+');
-    document.getElementById('__aws_orient_btn__').click(); // switch to horizontal
+    sendMsg(listener, 'updateSettings', { widgetOrientation: 'horizontal' });
     expect(document.getElementById('__aws_col_btn__').textContent).toBe('+');
   });
 
-  test('loadSiteSettings: localStorage에서 horizontal orientation 로드', () => {
-    localStorage.setItem('aws_widget_orientation', 'horizontal');
+  test('loadSiteSettings: aws_settings에서 horizontal orientation 로드', () => {
+    localStorage.setItem('aws_settings', JSON.stringify({ widgetOrientation: 'horizontal' }));
     jest.resetModules();
     require(CONTENT_PATH);
-    const widget = document.getElementById('__aws_widget__');
-    expect(widget.style.flexDirection).toBe('row');
+    expect(document.getElementById('__aws_widget__').style.flexDirection).toBe('row');
   });
 
-  test('loadSiteSettings: browser.storage.local에서 horizontal orientation 로드', () => {
+  test('loadSiteSettings: browser.storage.local aws_settings에서 horizontal orientation 로드', () => {
     global.browser.storage.local.get = jest.fn().mockReturnValue({
       then: (cb) => {
-        cb({ aws_widget_orientation: 'horizontal' });
+        cb({ aws_settings: { widgetOrientation: 'horizontal' } });
         return { catch: () => {} };
       },
     });
     jest.resetModules();
     require(CONTENT_PATH);
+    expect(document.getElementById('__aws_widget__').style.flexDirection).toBe('row');
+  });
+
+  test('unknown widgetOrientation 값은 수락되지 않고 현재 값 유지', () => {
+    sendMsg(listener, 'updateSettings', { widgetOrientation: 'diagonal' });
+    // 'diagonal'은 SETTINGS_KEYS에 포함되어 저장되지만 createWidget 조건은 'horizontal' 체크
+    // → widget은 column 유지 (기본값 vertical이 변경되었어도 isHoriz는 false)
     const widget = document.getElementById('__aws_widget__');
-    expect(widget.style.flexDirection).toBe('row');
+    expect(widget.style.flexDirection).toBe('column');
+  });
+
+  test('horizontal 모드에서 위젯 width가 auto', () => {
+    sendMsg(listener, 'updateSettings', { widgetOrientation: 'horizontal' });
+    expect(document.getElementById('__aws_widget__').style.width).toBe('auto');
   });
 });
