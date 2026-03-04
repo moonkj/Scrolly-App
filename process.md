@@ -396,6 +396,23 @@
 - 번들 ID(`com.kjmoon.Scrolly`), 타겟 이름, 소스 코드, 앱 기능에는 영향 없음
 - 결과: `~/Desktop/Scrolly_IPA/Scrolly.ipa` (v1.0.0 Build 1)
 
+## 2026-03-04 (플로팅 위젯 가로/세로 방향 전환 기능)
+
+### 기능 추가 — widget orientation toggle (content.js)
+- **배경**: 기존 플로팅 위젯은 세로(vertical) 레이아웃만 지원
+- **수정**: orientBtn(↔/↕) 클릭으로 vertical ↔ horizontal 즉시 전환
+  - **Vertical**: headerRow에 colBtn + orientBtn 나란히 배치, 세로 슬라이더(28×110, writing-mode:vertical-lr)
+  - **Horizontal**: flex-row, 가로 슬라이더(110×28), width:auto
+- **상태 저장**: `aws_widget_orientation` 키로 localStorage + browser.storage.local 양쪽 저장 (cross-site/새로고침 후 복원)
+- **기타**: `_applyWidgetCollapsedState()` / `applyWidgetTheme()` orientation 인식 업데이트, 전환 시 드래그 위치 보존
+
+### 테스트
+- orientation toggle 테스트 11개 추가
+- **115개 전부 통과**
+
+### 배포
+- 실기기(Moon iPhone Air) 빌드 + 설치 완료
+
 ## 2026-03-03 (content.js 버그·보안·성능 수정 4건)
 
 ### Fix 1 — Object.assign 화이트리스트 (content.js)
