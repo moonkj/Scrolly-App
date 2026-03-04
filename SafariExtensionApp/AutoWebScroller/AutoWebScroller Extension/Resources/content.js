@@ -386,6 +386,10 @@
     // Fallback: use globally cached position (loaded async from browser.storage.local)
     if (!savedPos && cachedWidgetPos) savedPos = cachedWidgetPos;
 
+    // Clean up previously injected horizontal slider style (orientation switch)
+    const prevHSliderStyle = document.getElementById('__aws_h_slider_style__');
+    if (prevHSliderStyle) prevHSliderStyle.remove();
+
     widget    = document.createElement('div');
     widget.id = '__aws_widget__';
 
@@ -425,7 +429,7 @@
     // Orient button (toggle layout direction)
     const orientBtn = document.createElement('button');
     orientBtn.id = '__aws_orient_btn__';
-    orientBtn.textContent = isHoriz ? '↕' : '↔';
+    orientBtn.textContent = isHoriz ? '\u2195\uFE0E' : '\u2194\uFE0E';  // ↕/↔ + text variation selector (no emoji)
     orientBtn.style.cssText = `
       width:22px; height:22px; border:none; border-radius:50%;
       background:transparent; font-size:14px; line-height:1;
@@ -470,12 +474,29 @@
     miniSlider.min = '1'; miniSlider.max = '20'; miniSlider.step = '1';
     miniSlider.value = String(settings.speed);
     if (isHoriz) {
+      miniSlider.id = '__aws_mini_slider__';
       miniSlider.style.cssText = `
+        -webkit-appearance: none;
         width: 110px;
-        height: 28px;
+        height: 4px;
         cursor: pointer;
-        accent-color: #30D158;
+        border-radius: 2px;
+        outline: none;
+        background: rgba(255,255,255,0.2);
       `;
+      // Inject thumb style (pseudo-element can't be set via inline style)
+      const hSliderStyle = document.createElement('style');
+      hSliderStyle.id = '__aws_h_slider_style__';
+      hSliderStyle.textContent = `
+        #__aws_mini_slider__::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          width: 20px; height: 20px;
+          background: #30D158;
+          border-radius: 50%;
+          cursor: pointer;
+        }
+      `;
+      document.head.appendChild(hSliderStyle);
     } else {
       miniSlider.style.cssText = `
         -webkit-appearance: slider-vertical;

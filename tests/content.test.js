@@ -1031,7 +1031,7 @@ describe('widget orientation toggle', () => {
   test('vertical 모드에서 orientBtn이 존재하고 ↔ 아이콘', () => {
     const orientBtn = document.getElementById('__aws_orient_btn__');
     expect(orientBtn).not.toBeNull();
-    expect(orientBtn.textContent).toBe('↔');
+    expect(orientBtn.textContent).toBe('\u2194\uFE0E');
   });
 
   test('vertical 모드에서 headerRow에 colBtn + orientBtn이 나란히 존재', () => {
@@ -1050,7 +1050,7 @@ describe('widget orientation toggle', () => {
   test('horizontal 모드에서 orientBtn이 ↕ 아이콘', () => {
     document.getElementById('__aws_orient_btn__').click();
     const orientBtn = document.getElementById('__aws_orient_btn__');
-    expect(orientBtn.textContent).toBe('↕');
+    expect(orientBtn.textContent).toBe('\u2195\uFE0E');
   });
 
   test('horizontal 모드에서 slider에 writing-mode 없음 (가로 슬라이더)', () => {
