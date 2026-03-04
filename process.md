@@ -490,6 +490,94 @@
 - **아카이브**: `xcodebuild archive` → `~/Desktop/Scrolly.xcarchive`
 - **업로드**: `xcodebuild -exportArchive` (destination: upload) → App Store Connect 직접 업로드 완료
 
+## 2026-03-04 (코드 리뷰 28개 항목 전체 적용 — v1.0.1)
+
+### 버전 통일: 1.0.1 (manifest.json, main.dart, CLAUDE.md, Xcode project)
+
+### 버그 수정
+
+#### C-1 — content.js triple-tap 핸들러 미선언 변수 참조
+- **원인**: `originalSpeed = null` — 선언되지 않은 변수에 암묵적 전역(strict mode 위반)
+- **수정**: 해당 줄 삭제 (triple-tap 속도 2x 초기화 동작에 영향 없음)
+
+#### I-5 / I-6 — Object.assign 프로토타입 오염 취약점
+- **원인**: `Object.assign(settings, JSON.parse(localStorage))` / `Object.assign(settings, cfg)` — `__proto__` 등 임의 키 주입 가능
+- **수정**: 허용 키 8개 배열 화이트리스트 루프로 교체 (content.js `loadSiteSettings` 2곳, popup.js `applyState` 1곳)
+
+#### S-4 — widgetOrientation 유효성 검사 누락
+- **원인**: `updateSettings` 메시지에서 임의 문자열이 widgetOrientation에 저장될 수 있음
+- **수정**: `['vertical','horizontal'].includes()` 검증 추가, 기타 값은 'vertical'로 폴백
+
+### 성능 개선
+
+#### S-6 — doScroll dt 캡 50ms → 100ms
+- **배경**: 탭 전환 복귀 시 최대 50ms(약 3프레임)만 보상 → 복귀 직후 스크롤 속도 튀는 현상
+- **수정**: 100ms로 완화 (약 6프레임, 탭 전환 흡수 효과 증가)
+
+#### I-8 — resize clamp `setTimeout` 래퍼 분리
+- **원인**: `_clampWidgetToViewport`를 resize 이벤트에 직접 등록 → horizontal 모드(`width:auto`)에서 `offsetWidth`가 layout 전에 읽혀 잘못된 위치로 클램프
+- **수정**: `_onResizeClamp()` 래퍼 함수 추가 — `setTimeout(_clampWidgetToViewport, 0)`으로 레이아웃 페인트 후 실행
+
+### 코드 품질
+
+#### I-7 — 위젯 슬라이더 touchstart 리스너 주석 추가
+- `passive:true` + `stopPropagation` 조합의 의도(네이티브 스크롤 허용, 위젯 드래그 차단) 명시
+
+#### S-7 — SPA onNavigate 방어적 주석 추가
+- JS ref 동기 초기화가 300ms 딜레이 타이머보다 먼저 실행되는 이유 설명
+
+### 프로젝트 구조 개선
+
+#### S-1 — package.json `sync` 스크립트 추가
+- `npm run sync` 한 명령으로 ios/ → SafariExtensionApp/ 동기화
+
+#### S-2 — ViewController.swift 미사용 코드 제거
+- `WKScriptMessageHandler` 프로토콜 + `add(self, name: "controller")` + `userContentController(_:didReceive:)` 제거
+- 제거 이유: 앱 WKWebView는 Main.html 정적 파일만 표시 → 메시지 핸들러 불필요, retain cycle 위험
+
+#### S-3 — .gitignore `*.xcuserstate` 추가 + 기존 파일 추적 해제
+- `UserInterfaceState.xcuserstate` (11KB 바이너리)는 IDE 상태 파일 → 버전 관리 불필요
+- `git rm --cached` 로 기존 추적 파일 제거
+
+#### C-2 / I-9 — CLAUDE.md 민감 정보 마스킹
+- 기기 UDID, CoreDevice UUID → `<YOUR_DEVICE_UDID>`, `<YOUR_COREDEVICE_UUID>` 플레이스홀더
+- DEVELOPMENT_TEAM ID → `<YOUR_TEAM_ID>` 플레이스홀더
+
+### UI / UX
+
+#### I-1 — manifest.json 존재하지 않는 아이콘 참조 수정
+- `icon-16.png`, `icon-48.png` → 없는 파일 참조 → 브라우저 경고
+- 실제 존재 파일(32/64/128)만 사용하도록 수정
+
+#### I-2 — main.dart '콘텐츠 인식 속도' 미구현 기능 항목 제거
+- 앱 소개 화면에서 구현되지 않은 기능 나열 → App Store 심사 위험 + 사용자 혼란
+- `_FeatureRow` 항목 제거
+
+#### I-3 — main.dart '사이트별 설정 저장' 설명 수정
+- 변경 전: "사이트마다 다른 속도/옵션 기억" (사이트별 격리 암시, 실제 구현과 불일치)
+- 변경 후: "마지막 설정을 자동으로 기억" (실제 동작 반영)
+
+#### S-9 — popup.css min-width 320px → 300px
+- 소형 화면에서 팝업이 잘리는 문제 완화
+- `.option-label span`에 `text-overflow: ellipsis` + `max-width: 180px` 추가
+
+### Flutter 앱
+
+#### S-10 — `withOpacity()` deprecated → `withValues(alpha:)`
+- Flutter 3.27+ 에서 `Color.withOpacity()` 사용 중단 경고 해소
+
+#### S-11 — ThemeMode.system 적용
+- 기존: 항상 다크 테마 고정
+- 수정: `themeMode: ThemeMode.system` + 라이트 테마(`#F2F2F7`) / 다크 테마(`#1C1C1E`) 분리
+
+### 테스트
+- popup.test.js: `POPUP_DOM`에 `widgetOrientControl` 추가 + 3개 테스트 신규
+- **119개 전부 통과**
+
+### 배포
+- iPhone Air + iPad Pro 빌드 + 설치 완료
+- GitHub push 완료
+
 ## 2026-02-26 (App Store Connect 현지화 문서 정비)
 
 ### document.md — 다국어 번역 추가
