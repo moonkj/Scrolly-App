@@ -79,7 +79,12 @@
     // Sync: read from current page's localStorage (fast, same-domain)
     try {
       const raw = localStorage.getItem(SETTINGS_KEY);
-      if (raw) Object.assign(settings, JSON.parse(raw));
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        for (const k of ['speed','direction','loop','autoPause','timerMins','gestureShortcuts','showWidget','widgetOrientation']) {
+          if (k in parsed) settings[k] = parsed[k];
+        }
+      }
     } catch (_) {}
     // Sync: restore widget collapsed state
     try {
@@ -90,7 +95,10 @@
       const p = browser.storage?.local?.get([SETTINGS_KEY, WIDGET_COLLAPSED_KEY, WIDGET_POS_GLOBAL_KEY]);
       if (p) p.then(result => {
         if (result?.[SETTINGS_KEY]) {
-          Object.assign(settings, result[SETTINGS_KEY]);
+          const stored = result[SETTINGS_KEY];
+          for (const k of ['speed','direction','loop','autoPause','timerMins','gestureShortcuts','showWidget','widgetOrientation']) {
+            if (k in stored) settings[k] = stored[k];
+          }
           notifyState(); // Sync popup if open
         }
         if (result?.[WIDGET_COLLAPSED_KEY] !== undefined) {
@@ -199,7 +207,7 @@
 
     // Delta-time: consistent px/second regardless of frame rate
     if (lastRafTime === null) lastRafTime = timestamp;
-    const dt = Math.min(timestamp - lastRafTime, 50); // cap 50ms (tab-switch protection)
+    const dt = Math.min(timestamp - lastRafTime, 100); // cap 100ms (tab-switch protection)
     lastRafTime = timestamp;
 
     const pps   = speedToPps(settings.speed);
@@ -346,7 +354,6 @@
         toggleScroll();
       } else if (count === 3) {
         settings.speed = 2;
-        originalSpeed  = null;
         updateWidgetUI();
         notifyState();
       }
@@ -490,6 +497,7 @@
       autoSaveSettings();  // persist speed change made via widget slider
       notifyState();
     });
+    // passive:true (allows native scroll through slider) + stopPropagation (blocks widget drag start)
     miniSlider.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
 
     sliderWrap.appendChild(miniSlider);
@@ -539,13 +547,17 @@
     darkModeListener = applyWidgetTheme;
     mq.addEventListener('change', darkModeListener);
     // Remove before re-adding to prevent duplicate resize listeners on SPA re-create
-    window.removeEventListener('resize', _clampWidgetToViewport);
-    window.addEventListener('resize', _clampWidgetToViewport);
+    window.removeEventListener('resize', _onResizeClamp);
+    window.addEventListener('resize', _onResizeClamp);
 
     // Connect keepalive port (only on first creation, not SPA re-creates)
     // When extension is disabled, the port disconnects → widget is removed
     if (!_keepalivePort) _connectKeepalive();
   }
+
+  // Wraps _clampWidgetToViewport in setTimeout so offsetWidth is ready after layout paint
+  // (needed for horizontal mode where width:auto is resolved only after DOM paint)
+  function _onResizeClamp() { setTimeout(_clampWidgetToViewport, 0); }
 
   function _clampWidgetToViewport() {
     if (!widget || widget.style.display === 'none') return;
@@ -692,6 +704,7 @@
         const prevWidgetOrient    = settings.widgetOrientation;
         const SETTINGS_KEYS = ['speed','direction','loop','autoPause','timerMins','gestureShortcuts','showWidget','widgetOrientation'];
         for (const k of SETTINGS_KEYS) { if (k in message) settings[k] = message[k]; }
+        if (!['vertical','horizontal'].includes(settings.widgetOrientation)) settings.widgetOrientation = 'vertical';
         // Any popup interaction: inhibit gesture shortcuts for 800ms to avoid
         // spurious double-tap from iOS touch-through on popup open/close
         gestureInhibitUntil = Date.now() + 800;
@@ -758,7 +771,8 @@
     if (isScrolling) stopScroll();
     scrollTarget = null;
 
-    // If SPA removed our widget from the DOM, null the reference so createWidget() can re-run
+    // Null the JS ref synchronously (before the 300ms timer fires) so that if another
+    // code path calls createWidget() during the delay it starts from a clean state.
     if (!document.getElementById('__aws_widget__')) { widget = null; widgetPlayBtn = null; }
 
     // Re-inject widget after SPA finishes rendering (~300ms delay)

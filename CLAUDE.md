@@ -12,7 +12,7 @@ AutoWebScroller/
 │   ├── popup.html / popup.css / popup.js      팝업 UI
 │   ├── content.js                             스크롤 엔진 (웹페이지에 삽입)
 │   └── background.js                          메시지 중계 레이어
-├── tests/                                     Jest 테스트 (64개)
+├── tests/                                     Jest 테스트
 └── XCODE_SETUP.md                             Xcode 통합 가이드
 ```
 
@@ -75,13 +75,14 @@ content.js 의 localStorage 는 **대상 페이지의 origin**에 저장된다.
 
 ```js
 {
-  speed:            3,      // 1-20 (배속), 기본값 3
-  direction:        'down', // 'down' | 'up'
-  loop:             false,  // 끝에서 처음으로 복귀
-  autoPause:        true,   // 터치 감지 시 일시정지 (3초 후 재개)
-  timerMins:        0,      // 0=끔, 5~60분 (5분 단위)
-  gestureShortcuts: true,   // 더블탭: 토글, 트리플탭: 속도 2x 초기화
-  showWidget:       true    // 플로팅 위젯 표시
+  speed:             3,          // 1-20 (배속), 기본값 3
+  direction:         'down',     // 'down' | 'up'
+  loop:              false,      // 끝에서 처음으로 복귀
+  autoPause:         true,       // 터치 감지 시 일시정지 (3초 후 재개)
+  timerMins:         0,          // 0=끔, 5~60분 (5분 단위)
+  gestureShortcuts:  true,       // 더블탭: 토글, 트리플탭: 속도 2x 초기화
+  showWidget:        true,       // 플로팅 위젯 표시
+  widgetOrientation: 'vertical'  // 'vertical' | 'horizontal'
 }
 ```
 
@@ -99,7 +100,7 @@ xcodebuild \
   -destination "id=<DEVICE_UDID>" \
   -allowProvisioningUpdates \
   CODE_SIGN_STYLE=Automatic \
-  DEVELOPMENT_TEAM=QN975MTM7H \
+  DEVELOPMENT_TEAM=<YOUR_TEAM_ID> \
   build
 
 # 3. 기기 설치
@@ -110,12 +111,12 @@ xcrun devicectl device install app \
 
 | 기기 | UDID (xctrace) | CoreDevice UUID (devicectl) |
 |------|----------------|------------------------------|
-| Moon (iPhone Air) | `00008150-001128391EF0401C` | `835A5E84-05B4-520C-B52C-E69BBEE38FED` |
+| Moon (iPhone Air) | `<YOUR_DEVICE_UDID>` | `<YOUR_COREDEVICE_UUID>` |
 
 ## 테스트
 
 ```bash
-npm test   # Jest 64개 전부 통과
+npm test   # 전체 테스트 통과
 ```
 
 ---
@@ -125,5 +126,4 @@ npm test   # Jest 64개 전부 통과
 | 버전 | 주요 변경 |
 |------|----------|
 | 1.0.0 | 초기 릴리스: 속도/방향/루프/타이머/자동일시정지 |
-| 1.1.0 | 제스처 단축키, 자동일시정지 강화, 콘텐츠인식속도, 플로팅위젯, 다크/라이트모드 |
-| 1.2.0 | WebExtension API 전환, 다국어(6개), 위젯 드래그 개선, SafariExtensionApp 분리 |
+| 1.0.1 | 위젯 가로/세로 방향 전환, 다국어(6개), 위젯 드래그 개선, SafariExtensionApp 분리 |

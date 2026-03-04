@@ -49,3 +49,6 @@ node_modules/
 
 # Xcode DerivedData
 DerivedData/
+
+# Xcode user state (not version-controlled)
+*.xcuserstate

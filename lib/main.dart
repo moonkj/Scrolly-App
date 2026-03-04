@@ -13,7 +13,17 @@ class AutoWebScrollerApp extends StatelessWidget {
     return MaterialApp(
       title: 'Scrolly',
       debugShowCheckedModeBanner: false,
+      themeMode: ThemeMode.system,
       theme: ThemeData(
+        brightness: Brightness.light,
+        scaffoldBackgroundColor: const Color(0xFFF2F2F7),
+        colorScheme: const ColorScheme.light(
+          primary: Color(0xFF30D158),
+          surface: Color(0xFFFFFFFF),
+        ),
+        fontFamily: '.SF Pro Text',
+      ),
+      darkTheme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF1C1C1E),
         colorScheme: const ColorScheme.dark(
@@ -156,19 +166,13 @@ class MainScreen extends StatelessWidget {
                       icon: Icons.bookmark_rounded,
                       color: Color(0xFF64D2FF),
                       title: '사이트별 설정 저장',
-                      subtitle: '사이트마다 다른 속도/옵션 기억',
+                      subtitle: '마지막 설정을 자동으로 기억',
                     ),
                     _FeatureRow(
                       icon: Icons.touch_app_rounded,
                       color: Color(0xFF32ADE6),
                       title: '제스처 단축키',
                       subtitle: '더블탭 일시정지, 트리플탭 속도 초기화',
-                    ),
-                    _FeatureRow(
-                      icon: Icons.smart_screen_rounded,
-                      color: Color(0xFFFF9F0A),
-                      title: '콘텐츠 인식 속도',
-                      subtitle: '광고 구간 빠르게, 이미지 구간 느리게 자동 조절',
                     ),
                     _FeatureRow(
                       icon: Icons.widgets_rounded,
@@ -206,10 +210,10 @@ class MainScreen extends StatelessWidget {
               // ── Version ───────────────────────────────────────────────────
               Center(
                 child: Text(
-                  'Version 1.1.0',
+                  'Version 1.0.1',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.white.withOpacity(0.3),
+                    color: Colors.white.withValues(alpha: 0.3),
                   ),
                 ),
               ),
@@ -348,7 +352,7 @@ class _FeatureRow extends StatelessWidget {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.15),
+                  color: color.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(9),
                 ),
                 child: Icon(icon, color: color, size: 20),

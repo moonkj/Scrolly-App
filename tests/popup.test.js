@@ -29,6 +29,11 @@ const POPUP_DOM = `
 
   <input type="range"  id="timerSlider" min="0" max="60" step="5" value="0">
   <span id="timerValue">끔</span>
+
+  <div id="widgetOrientControl">
+    <button class="seg-btn active" data-value="vertical">세로</button>
+    <button class="seg-btn"        data-value="horizontal">가로</button>
+  </div>
 `;
 
 // Helper: inject DOM + eval popup.js → returns the runtime message listener
@@ -252,5 +257,40 @@ describe('loopToggle change', () => {
       1,
       expect.objectContaining({ name: 'updateSettings', message: expect.objectContaining({ loop: true }) })
     );
+  });
+});
+
+// ─── Widget orientation ───────────────────────────────────────────────────────
+
+describe('widgetOrientControl', () => {
+  test('initial state: vertical seg-btn is active', () => {
+    loadPopup();
+    const btns = document.querySelectorAll('#widgetOrientControl .seg-btn');
+    const vBtn = Array.from(btns).find(b => b.dataset.value === 'vertical');
+    const hBtn = Array.from(btns).find(b => b.dataset.value === 'horizontal');
+    expect(vBtn.classList.contains('active')).toBe(true);
+    expect(hBtn.classList.contains('active')).toBe(false);
+  });
+
+  test('clicking horizontal sends updateSettings with widgetOrientation:"horizontal"', async () => {
+    loadPopup();
+    const hBtn = Array.from(document.querySelectorAll('#widgetOrientControl .seg-btn'))
+      .find(b => b.dataset.value === 'horizontal');
+    hBtn.click();
+    await Promise.resolve();
+    expect(browser.tabs.sendMessage).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({ name: 'updateSettings', message: expect.objectContaining({ widgetOrientation: 'horizontal' }) })
+    );
+  });
+
+  test('applyState with widgetOrientation:"horizontal" → horizontal btn active', () => {
+    const listener = loadPopup();
+    listener({ name: 'stateChanged', isScrolling: false, settings: { widgetOrientation: 'horizontal' } });
+    const btns = document.querySelectorAll('#widgetOrientControl .seg-btn');
+    const vBtn = Array.from(btns).find(b => b.dataset.value === 'vertical');
+    const hBtn = Array.from(btns).find(b => b.dataset.value === 'horizontal');
+    expect(hBtn.classList.contains('active')).toBe(true);
+    expect(vBtn.classList.contains('active')).toBe(false);
   });
 });

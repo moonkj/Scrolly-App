@@ -8,7 +8,7 @@
 import UIKit
 import WebKit
 
-class ViewController: UIViewController, WKNavigationDelegate, WKScriptMessageHandler {
+class ViewController: UIViewController, WKNavigationDelegate {
 
     @IBOutlet var webView: WKWebView!
 
@@ -18,16 +18,10 @@ class ViewController: UIViewController, WKNavigationDelegate, WKScriptMessageHan
         self.webView.navigationDelegate = self
         self.webView.scrollView.isScrollEnabled = true
 
-        self.webView.configuration.userContentController.add(self, name: "controller")
-
         self.webView.loadFileURL(Bundle.main.url(forResource: "Main", withExtension: "html")!, allowingReadAccessTo: Bundle.main.resourceURL!)
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        // Override point for customization.
-    }
-
-    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         // Override point for customization.
     }
 

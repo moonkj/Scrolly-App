@@ -241,7 +241,10 @@
 
   function applyState({ isScrolling: s, settings: cfg }) {
     isScrolling = s;
-    if (cfg) Object.assign(settings, cfg);
+    if (cfg) {
+      const KEYS = ['speed','direction','loop','autoPause','timerMins','gestureShortcuts','showWidget','widgetOrientation'];
+      for (const k of KEYS) { if (k in cfg) settings[k] = cfg[k]; }
+    }
     renderUI();
   }
 
