@@ -727,10 +727,11 @@
           if (settings.showWidget) showWidget();
           else hideWidget();
         }
-        // Handle orientation change: recreate widget with new layout
+        // Handle orientation change: recreate widget with new layout, then clamp position
         if (message.widgetOrientation !== undefined && settings.widgetOrientation !== prevWidgetOrient) {
           if (widget) { widget.remove(); widget = null; widgetPlayBtn = null; }
           if (settings.showWidget) createWidget();
+          setTimeout(_clampWidgetToViewport, 0);  // clamp after layout paint (offsetWidth ready)
         }
         autoSaveSettings();
         updateWidgetUI();
