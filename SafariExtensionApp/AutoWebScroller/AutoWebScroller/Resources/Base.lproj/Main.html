@@ -137,12 +137,16 @@
     <div class="legal-list-section">
       <div class="legal-list-header" data-i18n="legal_title"></div>
       <div class="legal-list">
-        <button class="legal-row" onclick="window.openPage('privacy')">
+        <button class="legal-row" onclick="window.openExternalURL('https://moonkj.github.io/Scrolly-App/privacy-policy')">
           <span data-i18n="privacy"></span>
           <span class="legal-chevron">&#8250;</span>
         </button>
         <button class="legal-row" onclick="window.openPage('terms')">
           <span data-i18n="terms"></span>
+          <span class="legal-chevron">&#8250;</span>
+        </button>
+        <button class="legal-row" onclick="window.openExternalURL('https://moonkj.github.io/Scrolly-App/')">
+          <span data-i18n="support"></span>
           <span class="legal-chevron">&#8250;</span>
         </button>
       </div>
@@ -151,7 +155,7 @@
   </div>
 
   <!-- Legal page (terms / privacy) — shown in-app, no Safari needed -->
-  <div id="legal-view" class="legal-view hidden">
+  <div id="legal-view" class="legal-view" style="display:none">
     <div class="legal-header">
       <button class="legal-back-btn" onclick="closePage()">&#8249;</button>
       <span class="legal-page-title" id="legal-title"></span>
@@ -185,7 +189,8 @@
         feat_gesture_desc:    '더블탭 일시정지, 트리플탭 속도 초기화',
         legal_title:          '법적 정보',
         terms:                '이용약관',
-        privacy:              '개인정보처리방침'
+        privacy:              '개인정보처리방침',
+        support:              '지원'
       },
       en: {
         tagline:              'Auto-scroll any webpage in Safari',
@@ -210,7 +215,8 @@
         feat_gesture_desc:    'Double-tap pause, triple-tap reset speed',
         legal_title:          'Legal',
         terms:                'Terms of Service',
-        privacy:              'Privacy Policy'
+        privacy:              'Privacy Policy',
+        support:              'Support'
       },
       ja: {
         tagline:              'Safariで自動スクロールを楽しもう',
@@ -235,7 +241,8 @@
         feat_gesture_desc:    'ダブルタップで一時停止、トリプルタップでリセット',
         legal_title:          '法的情報',
         terms:                '利用規約',
-        privacy:              'プライバシーポリシー'
+        privacy:              'プライバシーポリシー',
+        support:              'サポート'
       },
       zh: {
         tagline:              '在Safari中自动滚动网页',
@@ -260,7 +267,8 @@
         feat_gesture_desc:    '双击暂停，三击重置速度',
         legal_title:          '法律信息',
         terms:                '服务条款',
-        privacy:              '隐私政策'
+        privacy:              '隐私政策',
+        support:              '支持'
       },
       fr: {
         tagline:              'Défilement automatique dans Safari',
@@ -285,7 +293,8 @@
         feat_gesture_desc:    'Double tap pause, triple tap réinitialise',
         legal_title:          'Informations légales',
         terms:                "Conditions d'utilisation",
-        privacy:              'Politique de confidentialité'
+        privacy:              'Politique de confidentialité',
+        support:              'Support'
       },
       hi: {
         tagline:              'Safari में वेबपेज अपने आप स्क्रॉल करें',
@@ -310,7 +319,8 @@
         feat_gesture_desc:    'डबल टैप पॉज़, ट्रिपल टैप स्पीड रीसेट',
         legal_title:          'कानूनी जानकारी',
         terms:                'सेवा की शर्तें',
-        privacy:              'गोपनीयता नीति'
+        privacy:              'गोपनीयता नीति',
+        support:              'सहायता'
       }
     };
 
@@ -387,15 +397,21 @@
       legalBody.innerHTML = sections.map(function(sec) {
         return '<div class="legal-section"><h3>' + sec[0] + '</h3><p>' + sec[1] + '</p></div>';
       }).join('');
-      mainView.classList.add('hidden');
-      legalView.classList.remove('hidden');
+      mainView.style.display = 'none';
+      legalView.style.display = 'flex';
       window.scrollTo(0, 0);
     };
 
     window.closePage = function() {
-      legalView.classList.add('hidden');
-      mainView.classList.remove('hidden');
+      legalView.style.display = 'none';
+      mainView.style.display = '';
       window.scrollTo(0, 0);
+    };
+
+    window.openExternalURL = function(url) {
+      if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.openURL) {
+        window.webkit.messageHandlers.openURL.postMessage(url);
+      }
     };
   }());
   </script>

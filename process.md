@@ -665,6 +665,42 @@
 
 ---
 
+## 2026-03-16 (v1.0.2 — 네이티브 앱 법적 페이지 수정 + GitHub Pages)
+
+### 버그 수정 — 네이티브 앱 개인정보처리방침/이용약관 페이지 미작동
+
+#### 증상
+- 네이티브 앱(WKWebView) Main.html에서 개인정보처리방침 버튼을 탭해도 페이지가 열리지 않음
+
+#### 원인
+- `<div id="legal-view" class="hidden">` 의 표시/숨김 전환이 `.hidden { display:none }` CSS 클래스에 의존
+- WKWebView가 `loadFileURL` + CSP(`default-src 'self'`)로 `file://` 페이지 로드 시, `../Style.css` (상위 디렉토리)가 동일 출처(same-origin)로 인식되지 않아 CSS 로드 차단
+- `.hidden` 클래스에 정의된 스타일이 적용되지 않아 show/hide 전환이 동작하지 않음
+
+#### 수정 (Main.html)
+- `legalView` 초기 상태를 `class="hidden"` → `style="display:none"` 인라인 스타일로 변경
+- `window.openPage()` / `window.closePage()` 에서 `classList.add/remove('hidden')` 대신 `style.display = 'none'/'flex'/''` 직접 조작으로 변경
+- CSS 로드 여부와 무관하게 동작하도록 수정
+
+### 기능 추가 — 지원 URL 버튼 + 외부 URL Safari 열기
+
+#### 변경 내용 (Main.html + ViewController.swift)
+- 개인정보처리방침 버튼: 인앱 뷰 → 외부 URL (`https://moonkj.github.io/Scrolly-App/privacy-policy`) Safari 오픈으로 변경
+- 지원 버튼 신규 추가: `https://moonkj.github.io/Scrolly-App/` Safari 오픈
+- `window.openExternalURL(url)` JS 함수 추가: `window.webkit.messageHandlers.openURL.postMessage(url)` 호출
+- `ViewController.swift`: `WKScriptMessageHandler` 채택, `"openURL"` 메시지 수신 시 `UIApplication.shared.open(url)` 실행
+- 6개 언어 모두 `support` i18n 키 추가
+
+### GitHub Pages 생성 (moonkj/Scrolly-App)
+
+- `index.html` — 지원 페이지 (`https://moonkj.github.io/Scrolly-App/`)
+- `privacy-policy/index.html` — 개인정보처리방침 (`https://moonkj.github.io/Scrolly-App/privacy-policy`)
+- GitHub Pages 활성화 (main 브랜치 루트 기준)
+- App Store Connect 개인정보처리방침 URL: `https://moonkj.github.io/Scrolly-App/privacy-policy`
+- App Store Connect 지원 URL: `https://moonkj.github.io/Scrolly-App/`
+
+---
+
 ## 2026-02-26 (App Store Connect 현지화 문서 정비)
 
 ### document.md — 다국어 번역 추가
