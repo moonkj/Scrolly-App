@@ -7,6 +7,7 @@
 
   let settings = {
     speed:            3,
+    speedMode:        'curve',    // 'curve' (s²×9 px/s) | 'linear' (s×20 px/s)
     direction:        'down',
     loop:             false,
     autoPause:        true,
@@ -81,7 +82,7 @@
       const raw = localStorage.getItem(SETTINGS_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        for (const k of ['speed','direction','loop','autoPause','timerMins','gestureShortcuts','showWidget','widgetOrientation']) {
+        for (const k of ['speed','speedMode','direction','loop','autoPause','timerMins','gestureShortcuts','showWidget','widgetOrientation']) {
           if (k in parsed) settings[k] = parsed[k];
         }
       }
@@ -96,7 +97,7 @@
       if (p) p.then(result => {
         if (result?.[SETTINGS_KEY]) {
           const stored = result[SETTINGS_KEY];
-          for (const k of ['speed','direction','loop','autoPause','timerMins','gestureShortcuts','showWidget','widgetOrientation']) {
+          for (const k of ['speed','speedMode','direction','loop','autoPause','timerMins','gestureShortcuts','showWidget','widgetOrientation']) {
             if (k in stored) settings[k] = stored[k];
           }
           notifyState(); // Sync popup if open
@@ -151,6 +152,14 @@
   // ─── Scroll Target Detection ──────────────────────────────────────────────────
 
   function getScrollTarget() {
+    // Prefer the page itself when it has scrollable content.
+    // This prevents inner containers (comment sections, feed items, sidebars, etc.)
+    // that happen to be at the viewport centre from being picked as the target —
+    // which would make the page appear to scroll slowly or not at all.
+    if (document.documentElement.scrollHeight > window.innerHeight + 1) {
+      return document.documentElement;
+    }
+    // Page is not scrollable (fixed-height SPA viewport) — find the inner container.
     const cx = window.innerWidth  / 2;
     const cy = window.innerHeight / 2;
     let el = document.elementFromPoint(cx, cy);
@@ -166,11 +175,11 @@
 
   // ─── Scroll Loop ──────────────────────────────────────────────────────────────
 
-  // Quadratic speed curve (pixels per second):
-  //   speed 1 → ~9 px/s   speed 5 → ~225 px/s
-  //   speed 10 → ~900 px/s  speed 20 → ~3600 px/s
+  // Speed curve (pixels per second):
+  //   curve  — quadratic: s²×9   (1→9, 3→81, 5→225, 10→900, 20→3600)
+  //   linear — linear:    s×20   (1→20, 3→60, 5→100, 10→200, 20→400)
   function speedToPps(s) {
-    return s * s * 9;
+    return settings.speedMode === 'linear' ? s * 20 : s * s * 9;
   }
 
   function doScroll(timestamp) {
@@ -185,15 +194,27 @@
       }
     }
 
-    // scrollTarget re-detection: every 300 frames (~5s) for infinite-scroll sites
-    // where the scroll container may change dynamically after initial detection
+    // scrollTarget re-detection: every 300 frames (~5s) for infinite-scroll sites.
+    // Only switch when the current target has reached the scroll edge in the direction
+    // of travel — otherwise a mid-page scrollable div (e.g. comments section) would
+    // hijack the target and the page would appear to slow down / stop.
     if (++scrollTargetTimer >= 300) {
       scrollTargetTimer = 0;
-      const newTarget = getScrollTarget();
-      if (newTarget !== scrollTarget) {
-        try { scrollTarget.style.setProperty('will-change', 'auto'); } catch (_) {}
-        scrollTarget = newTarget;
-        try { scrollTarget.style.setProperty('will-change', 'scroll-position'); } catch (_) {}
+      const st = scrollTarget;
+      const isRoot       = st === document.documentElement;
+      const scrollTop    = isRoot ? window.scrollY              : st.scrollTop;
+      const scrollHeight = isRoot ? document.body.scrollHeight  : st.scrollHeight;
+      const clientHeight = isRoot ? window.innerHeight          : st.clientHeight;
+      const atEdge = settings.direction === 'down'
+        ? scrollTop + clientHeight >= scrollHeight - 2   // reached bottom
+        : scrollTop <= 2;                                // reached top
+      if (atEdge) {
+        const newTarget = getScrollTarget();
+        if (newTarget !== scrollTarget) {
+          try { scrollTarget.style.setProperty('will-change', 'auto'); } catch (_) {}
+          scrollTarget = newTarget;
+          try { scrollTarget.style.setProperty('will-change', 'scroll-position'); } catch (_) {}
+        }
       }
     }
 
@@ -702,7 +723,7 @@
         const prevDirection       = settings.direction;
         const prevShowWidget      = settings.showWidget;
         const prevWidgetOrient    = settings.widgetOrientation;
-        const SETTINGS_KEYS = ['speed','direction','loop','autoPause','timerMins','gestureShortcuts','showWidget','widgetOrientation'];
+        const SETTINGS_KEYS = ['speed','speedMode','direction','loop','autoPause','timerMins','gestureShortcuts','showWidget','widgetOrientation'];
         for (const k of SETTINGS_KEYS) { if (k in message) settings[k] = message[k]; }
         if (!['vertical','horizontal'].includes(settings.widgetOrientation)) settings.widgetOrientation = 'vertical';
         // Any popup interaction: inhibit gesture shortcuts for 800ms to avoid
@@ -798,6 +819,13 @@
     onNavigate();
   };
   window.addEventListener('popstate', onNavigate);
+
+  // bfcache (Back/Forward Cache): when the page is stored in bfcache the JS heap
+  // is frozen — including any running RAF loop. On restoration, the old IIFE's RAF
+  // resumes alongside the newly injected IIFE's loop, doubling the effective speed
+  // and making scroll impossible to stop. Calling stopScroll() on pagehide cancels
+  // the RAF before the page enters bfcache, so there is no stale loop on restore.
+  window.addEventListener('pagehide', stopScroll);
 
   // ─── Init ─────────────────────────────────────────────────────────────────────
 

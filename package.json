@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "test": "jest",
-    "sync": "cp ios/SafariExtension/Resources/*.js \"SafariExtensionApp/AutoWebScroller/AutoWebScroller Extension/Resources/\""
+    "sync": "cp ios/SafariExtension/Resources/*.js ios/SafariExtension/Resources/*.html ios/SafariExtension/Resources/*.css \"SafariExtensionApp/AutoWebScroller/AutoWebScroller Extension/Resources/\""
   },
   "devDependencies": {
     "jest": "^29.7.0",

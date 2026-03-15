@@ -32,7 +32,7 @@ body {
   background: var(--bg);
   color: var(--text);
   width: 100%;
-  min-width: 320px;
+  min-width: 300px;
   padding: 14px 16px 20px;
   -webkit-font-smoothing: antialiased;
 }
@@ -202,7 +202,7 @@ header {
   gap: 2px;
   padding-right: 8px;
 }
-.option-label span  { font-size: 14px; font-weight: 500; }
+.option-label span  { font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px; }
 .option-label small { font-size: 11px; color: var(--text-3); line-height: 1.4; }
 
 /* ─── Toggle Switch ──────────────────────────────────────────────────────────── */

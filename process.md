@@ -578,6 +578,93 @@
 - iPhone Air + iPad Pro 빌드 + 설치 완료
 - GitHub push 완료
 
+## 2026-03-16 (스크롤 속도 버그 3건 수정 + 속도 모드 기능 추가)
+
+### 버그 수정 1: 페이지 중간에서 스크롤이 느려지는 문제 (content.js)
+
+#### 증상
+- 페이지 상단에서는 빠르다가 아래로 내려가면 느려짐
+
+#### 원인
+- `scrollTargetTimer` (300프레임마다 scroll target 재감지) 가 뷰포트 중앙의 요소 기준으로 감지
+- 페이지를 내려가다 댓글/사이드바 등 내부 스크롤 컨테이너가 중앙에 들어오면 target 교체
+- 이후 `scrollBy()`가 작은 inner div에 적용 → 페이지 전체 스크롤 멈춤
+
+#### 수정 (content.js)
+- 재감지 조건 강화: **현재 스크롤 방향의 끝(엣지)에 도달했을 때만** 교체 허용
+  - `direction=down`: `scrollTop + clientHeight >= scrollHeight - 2` 일 때만 교체
+  - `direction=up`: `scrollTop <= 2` 일 때만 교체
+
+### 버그 수정 2: 다음 페이지 이동 후 속도 변화 (content.js)
+
+#### 증상
+- SPA 페이지 이동 후 스크롤 재시작 시 속도가 다름 (느려짐)
+
+#### 원인
+- `getScrollTarget()` 초기 감지 시 뷰포트 중앙의 inner div를 target으로 잡음
+- 버그 수정 1은 재감지만 막았고, **초기 감지**는 여전히 취약
+
+#### 수정 (content.js) — `getScrollTarget()` page-first 휴리스틱
+- `document.documentElement.scrollHeight > window.innerHeight + 1` 이면 항상 페이지 우선 사용
+- 페이지가 스크롤 불가(SPA 고정 뷰포트)일 때만 inner container 감지 경로로 폴백
+- 적용 범위: 일반 웹사이트(기사/블로그 등) → documentElement / SPA(Twitter·YouTube) → inner div 유지
+
+### 버그 수정 3: 뒤로가기 후 속도 2배 + 정지 불가 (content.js)
+
+#### 증상
+- 다른 페이지 갔다가 이전 페이지로 돌아오면 스크롤 속도가 2배, 정지도 안 됨
+
+#### 원인
+- Safari **bfcache(Back/Forward Cache)**: 페이지를 캐시로 저장 시 JS 힙 상태 그대로 동결
+- 복원 시 이전 IIFE의 RAF 루프가 살아있는 채로 부활
+- content.js 재주입으로 새 IIFE의 RAF 루프까지 추가 → 두 루프 동시 실행 → 2배 속도
+
+#### 수정 (content.js)
+- `window.addEventListener('pagehide', stopScroll)` 추가
+- 페이지가 bfcache로 들어가기 전 RAF 완전 취소 → 복원 시 이전 루프 없음
+
+### 새 기능: 속도 모드 선택 (content.js, popup.html, popup.js)
+
+#### 기능
+- 팝업 속도 카드에 **곡선 / 선형** 토글 추가
+  - **곡선**: 기존 s²×9 (낮은 단계 세밀, 높은 단계 급격히 빠름)
+  - **선형**: s×20 (전 구간 균일하게 20px/s씩 증가)
+
+#### 속도 비교
+
+| 단계 | 곡선 (px/s) | 선형 (px/s) |
+|------|------------|------------|
+| 1 | 9 | 20 |
+| 3 | 81 | 60 |
+| 5 | 225 | 100 |
+| 10 | 900 | 200 |
+| 20 | 3600 | 400 |
+
+#### 구현
+- `settings.speedMode: 'curve' | 'linear'` 추가
+- `speedToPps(s)`: `speedMode === 'linear' ? s * 20 : s * s * 9`
+- 화이트리스트 4곳 모두 `speedMode` 추가 (loadSiteSettings 2곳, updateSettings 핸들러, popup.js applyState)
+- 6개 언어 i18n 추가
+
+### 프로젝트 구조 개선
+
+#### npm run sync 수정 (package.json)
+- 기존: `.js`만 복사
+- 수정: `.js` + `.html` + `.css` 모두 복사
+- 원인: popup.html 변경 시 Safari Extension Resources에 반영 안 되던 문제
+
+#### CLAUDE.md — AI 협업 워크플로우 추가
+- UX 설계자 → 설계자 → 코드 작성자 → 디버거 → 테스트 → 리뷰어 순서 정의
+- 성능 최적화·문서화 담당은 요청 시에만 수행
+
+### 테스트
+- `getScrollTarget` page-first 테스트 2개 추가
+- `scrollTarget` 재감지 hijack 방지 테스트 2개 추가
+- `pagehide` bfcache 정리 테스트 2개 추가
+- **125개 전부 통과**
+
+---
+
 ## 2026-02-26 (App Store Connect 현지화 문서 정비)
 
 ### document.md — 다국어 번역 추가

@@ -27,6 +27,15 @@
       <span class="card-title" data-i18n="speed_title">🚀 속도</span>
       <span class="value-badge" id="speedValue">2x</span>
     </div>
+    <div class="option-row" style="margin-bottom:8px">
+      <label class="option-label">
+        <span data-i18n="speed_mode_label">속도 곡선</span>
+      </label>
+      <div class="seg-control" id="speedModeControl">
+        <button class="seg-btn active" data-value="curve"  data-i18n="speed_mode_curve">곡선</button>
+        <button class="seg-btn"        data-value="linear" data-i18n="speed_mode_linear">선형</button>
+      </div>
+    </div>
     <input type="range" id="speedSlider"
            min="1" max="20" step="1" value="3"
            class="slider">

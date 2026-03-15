@@ -28,6 +28,9 @@
       widget_orient_label:'위젯 방향',
       widget_orient_v:    '세로',
       widget_orient_h:    '가로',
+      speed_mode_label:   '속도 곡선',
+      speed_mode_curve:   '곡선',
+      speed_mode_linear:  '선형',
       start:          '시작',
       stop:           '정지',
     },
@@ -56,6 +59,9 @@
       widget_orient_label:'Widget Layout',
       widget_orient_v:    'Vertical',
       widget_orient_h:    'Horizontal',
+      speed_mode_label:   'Speed Curve',
+      speed_mode_curve:   'Curve',
+      speed_mode_linear:  'Linear',
       start:          'Start',
       stop:           'Stop',
     },
@@ -84,6 +90,9 @@
       widget_orient_label:'向き',
       widget_orient_v:    '縦',
       widget_orient_h:    '横',
+      speed_mode_label:   '速度カーブ',
+      speed_mode_curve:   'カーブ',
+      speed_mode_linear:  'リニア',
       start:          '開始',
       stop:           '停止',
     },
@@ -112,6 +121,9 @@
       widget_orient_label:'方向',
       widget_orient_v:    '竖向',
       widget_orient_h:    '横向',
+      speed_mode_label:   '速度曲线',
+      speed_mode_curve:   '曲线',
+      speed_mode_linear:  '线性',
       start:          '开始',
       stop:           '停止',
     },
@@ -140,6 +152,9 @@
       widget_orient_label:'Disposition',
       widget_orient_v:    'Vertical',
       widget_orient_h:    'Horizontal',
+      speed_mode_label:   'Courbe de vitesse',
+      speed_mode_curve:   'Courbe',
+      speed_mode_linear:  'Linéaire',
       start:          'Démarrer',
       stop:           'Arrêter',
     },
@@ -168,6 +183,9 @@
       widget_orient_label:'लेआउट',
       widget_orient_v:    'लंबवत',
       widget_orient_h:    'क्षैतिज',
+      speed_mode_label:   'गति वक्र',
+      speed_mode_curve:   'वक्र',
+      speed_mode_linear:  'रेखीय',
       start:          'शुरू',
       stop:           'रोकें',
     },
@@ -203,6 +221,7 @@
   const gestureToggle    = document.getElementById('gestureToggle');
   const showWidgetToggle   = document.getElementById('showWidgetToggle');
   const widgetOrientBtns   = document.querySelectorAll('#widgetOrientControl .seg-btn');
+  const speedModeBtns      = document.querySelectorAll('#speedModeControl .seg-btn');
 
   // ─── Storage key ─────────────────────────────────────────────────────────────
   const SETTINGS_KEY = 'aws_settings';
@@ -211,6 +230,7 @@
   let isScrolling = false;
   let settings = {
     speed:            3,
+    speedMode:        'curve',
     direction:        'down',
     loop:             false,
     autoPause:        true,
@@ -242,7 +262,7 @@
   function applyState({ isScrolling: s, settings: cfg }) {
     isScrolling = s;
     if (cfg) {
-      const KEYS = ['speed','direction','loop','autoPause','timerMins','gestureShortcuts','showWidget','widgetOrientation'];
+      const KEYS = ['speed','speedMode','direction','loop','autoPause','timerMins','gestureShortcuts','showWidget','widgetOrientation'];
       for (const k of KEYS) { if (k in cfg) settings[k] = cfg[k]; }
     }
     renderUI();
@@ -276,6 +296,10 @@
 
     widgetOrientBtns.forEach(btn => {
       btn.classList.toggle('active', btn.dataset.value === settings.widgetOrientation);
+    });
+
+    speedModeBtns.forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.value === settings.speedMode);
     });
 
     timerSlider.value = settings.timerMins;
@@ -347,6 +371,14 @@
   widgetOrientBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       settings.widgetOrientation = btn.dataset.value;
+      renderUI();
+      pushSettings();
+    });
+  });
+
+  speedModeBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      settings.speedMode = btn.dataset.value;
       renderUI();
       pushSettings();
     });
