@@ -1,5 +1,91 @@
 # AutoWebScroller – 버그 수정 기록
 
+## 2026-04-07 (팀 에이전트 1라운드 — 전체 코드 리뷰)
+
+### 모드: 5인 팀 에이전트 병렬 실행
+- 리더 (Architect) — UX/UI + 통합 + 최종 판단
+- Teammate 1 (Coder) — 일관성·컨벤션 검토
+- Teammate 2 (Debugger) — 잠재 버그·race condition·iOS Safari quirks
+- Teammate 3 (Tester+Reviewer) — 커버리지·최종 품질 리뷰
+- Teammate 4 (Performance+Doc) — RAF/배터리·문서화
+
+### 검토 범위
+전체 코드베이스 — Safari Extension(ios/), Native App(SafariExtensionApp/), Tests, Config, GitHub Pages **한 줄도 빠짐없이**
+
+### 실측 커버리지 (npm test -- --coverage)
+| 파일 | Line | Branch | Func |
+|------|------|--------|------|
+| content.js | 94.27% | 74.88% | 89.18% |
+| popup.js | 94.5% | 79.06% | 100% |
+| background.js | 94.73% | 100% | 100% |
+| **전체** | **94.35%** | **75.91%** | **90.9%** |
+
+테스트 125개 모두 통과.
+
+### 주요 발견 (요약)
+
+#### Critical (즉시 수정 권장)
+- **C1 — popup.js:393 Object.assign 프로토타입 오염 위험**
+  - `Object.assign(settings, result[SETTINGS_KEY])` — content.js는 이미 화이트리스트 사용 중인데 popup.js만 누락
+  - 발견자: Debugger + Reviewer 합의
+
+#### High
+- **H1 — content.js:201-219 scrollTarget 재감지 race condition**
+  - 재감지 직후 같은 프레임에 `scrollBy()` → iOS Safari `scrollTop` 비동기 갱신 문제로 다음 프레임에서 이전 값 평가 가능
+  - 발견자: Debugger
+- **H2 — content.js:189-250 doScroll 매 프레임 불필요한 layout reads**
+  - loop 비활성 시에도 매 프레임 `scrollTop / scrollHeight / clientHeight` 읽음 → battery 5~10% 영향 (이론치)
+  - 발견자: Performance + Coder + Debugger
+- **H3 — 설정 키 배열 4곳 중복** (popup.js:265, content.js:85/100/726)
+  - C1과 통합 수정 가능 (단일 상수 도입)
+  - 발견자: Coder + Reviewer
+
+#### Medium (출시 후 리팩터링)
+- M1 `loadSiteSettings()` 99줄 — 동기/비동기/위젯 생성 혼재
+- M2 `updateSettings` 핸들러 너무 길고 책임 다수
+- M3 `doScroll()` 책임 과다 (SPA 체크 + 타겟 재감지 + autoPause + delta + loop)
+- M4 `darkModeListener`: 매번 새 `matchMedia` 객체 → removeEventListener 무효 가능성 (디버거 가설, 검증 필요)
+- M5 `loadSiteSettings()` 비동기 콜백 vs 300ms 타이머 race
+- M6 위젯 vertical/horizontal cssText 70% 중복 → CSS 클래스 분리 권장
+
+#### Low
+- IIFE 838줄 모듈화 / 변수 축약 / Magic numbers / popup.html `lang="ko"` 고정 / `getScrollTarget` while 깊이 제한 / visibilitychange 리스너 정리
+
+### 과학적 토론 (Cross-Layer)
+
+1. **C1 + H3 통합**: 같은 문제의 다른 측면. `SETTINGS_KEYS` 단일 상수 도입으로 4곳 중복 + Object.assign 동시 해결.
+2. **H1 + H2 + M3 통합 수정**: doScroll에 대한 3가지 관점(정확성/성능/구조). 단기는 H1+H2만 적용, 중기에 M3 분할 리팩터링.
+3. **darkModeListener 가설**: 디버거가 단독 발견. content.js:566-569의 `const mq = window.matchMedia(...)`가 매번 새 객체일 가능성 → 다음 라운드에서 캐싱 적용 검증.
+4. **출시 차단**: 4명 모두 **출시 가능** 합의. C1만 빠른 수정 권장.
+
+### 최종 판정: 🟢 출시 승인 (C1 수정 조건부)
+
+### Action Items
+
+#### 즉시 (출시 전)
+- [ ] C1 + H3 통합: SETTINGS_KEYS 단일 상수 도입
+
+#### 단기 (1.0.3 또는 패치)
+- [ ] H1: scrollTarget 전환 프레임 scrollBy 스킵
+- [ ] H2: doScroll loop 비활성 early return
+- [ ] M4 가설 검증: darkModeListener mq 캐싱
+- [ ] L5: getScrollTarget while 깊이 제한 50
+
+#### 중기 (1.1.0)
+- [ ] M1, M2, M3, M5, M6 리팩터링
+- [ ] 누락 테스트 P0/P1 추가 (`_connectKeepalive`, popup storage 폴백, gesture inhibit 경계, sendMessage rejection)
+
+#### 문서화 (P0)
+- [ ] content.js 전역 변수 JSDoc (`spaCheckTimer`, `scrollTargetTimer`, `gestureInhibitUntil`)
+- [ ] `doScroll()` JSDoc
+- [ ] storage 키 3종 차이 주석
+- [ ] CLAUDE.md에 speedMode / wake lock / autoPause RAF 멈춤 섹션 추가
+- [ ] README.md 생성 (영어)
+
+상세 내용: `Tasklist.md` 참조.
+
+---
+
 ## 2026-02-25
 
 ### 버그 수정 (content.js)
