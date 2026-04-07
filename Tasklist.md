@@ -3,7 +3,28 @@
 **시작일**: 2026-04-07
 **모드**: 팀 에이전트 병렬 실행 (5인 협업)
 **범위**: 전체 코드베이스 (한 줄도 빼지 않음)
-**상태**: ✅ 1라운드 완료
+**상태**: ✅ 1라운드 완료 → ✅ 2라운드 완료 (즉시 수정 + 신규 버그 + 종료 기능)
+
+## 2라운드 진행 결과 (2026-04-07)
+
+### 적용된 수정
+- ✅ **C1 + H3 통합** — `SETTINGS_KEYS` 단일 상수, popup.js Object.assign → whitelist
+- ✅ **H1** — scrollTarget 재감지 후 같은 프레임 scrollBy 스킵
+- ✅ **Bug N1 (끝에서 재실행)** — stuck 감지 (180프레임/3초 위치 미변화 시 자동 정지)
+- ✅ **Bug N2 (페이지 이동 재실행)** — pageshow bfcache 복원 시 강제 stopScroll
+- ✅ **종료(Quit) 기능** — popup `✕` 버튼 + content `quitScroll()` + 6개 언어 i18n
+
+### 테스트
+- 125 → **133개** (8개 신규)
+- 신규 describe: pageshow / quit / stuck detection
+- 커버리지: content.js 94.12% / popup.js 92.5% / background.js 94.73%
+
+### 보류 (다음 라운드)
+- H2 (doScroll loop 비활성 early return) — 작업 영역 충돌로 분리
+- M1~M6, L1~L6 (1라운드 발견) — 1.1.0 리팩터링
+
+---
+
 
 ---
 

@@ -33,6 +33,7 @@
       speed_mode_linear:  '선형',
       start:          '시작',
       stop:           '정지',
+      quit_title:     '종료',
     },
     en: {
       speed_title:    '🚀 Speed',
@@ -64,6 +65,7 @@
       speed_mode_linear:  'Linear',
       start:          'Start',
       stop:           'Stop',
+      quit_title:     'Quit',
     },
     ja: {
       speed_title:    '🚀 スピード',
@@ -95,6 +97,7 @@
       speed_mode_linear:  'リニア',
       start:          '開始',
       stop:           '停止',
+      quit_title:     '終了',
     },
     zh: {
       speed_title:    '🚀 速度',
@@ -126,6 +129,7 @@
       speed_mode_linear:  '线性',
       start:          '开始',
       stop:           '停止',
+      quit_title:     '退出',
     },
     fr: {
       speed_title:    '🚀 Vitesse',
@@ -157,6 +161,7 @@
       speed_mode_linear:  'Linéaire',
       start:          'Démarrer',
       stop:           'Arrêter',
+      quit_title:     'Quitter',
     },
     hi: {
       speed_title:    '🚀 गति',
@@ -188,6 +193,7 @@
       speed_mode_linear:  'रेखीय',
       start:          'शुरू',
       stop:           'रोकें',
+      quit_title:     'समाप्त',
     },
   };
 
@@ -206,10 +212,14 @@
     document.querySelectorAll('[data-i18n]').forEach(el => {
       el.textContent = t(el.dataset.i18n);
     });
+    document.querySelectorAll('[data-i18n-title]').forEach(el => {
+      el.title = t(el.dataset.i18nTitle);
+    });
   }
 
   // ─── DOM refs ────────────────────────────────────────────────────────────────
   const toggleBtn        = document.getElementById('toggleBtn');
+  const quitBtn          = document.getElementById('quitBtn');
   const statusDot        = document.getElementById('statusDot');
   const speedSlider      = document.getElementById('speedSlider');
   const speedValue       = document.getElementById('speedValue');
@@ -225,6 +235,13 @@
 
   // ─── Storage key ─────────────────────────────────────────────────────────────
   const SETTINGS_KEY = 'aws_settings';
+
+  // Single source of truth for allowed settings keys (mirrors content.js).
+  // Used wherever a settings object is merged in — prevents prototype pollution.
+  const SETTINGS_KEYS = [
+    'speed','speedMode','direction','loop','autoPause','timerMins',
+    'gestureShortcuts','showWidget','widgetOrientation'
+  ];
 
   // ─── Local state ─────────────────────────────────────────────────────────────
   let isScrolling = false;
@@ -262,8 +279,7 @@
   function applyState({ isScrolling: s, settings: cfg }) {
     isScrolling = s;
     if (cfg) {
-      const KEYS = ['speed','speedMode','direction','loop','autoPause','timerMins','gestureShortcuts','showWidget','widgetOrientation'];
-      for (const k of KEYS) { if (k in cfg) settings[k] = cfg[k]; }
+      for (const k of SETTINGS_KEYS) { if (k in cfg) settings[k] = cfg[k]; }
     }
     renderUI();
   }
@@ -324,6 +340,15 @@
     isScrolling = !isScrolling;
     renderUI();
   });
+
+  if (quitBtn) {
+    quitBtn.addEventListener('click', () => {
+      send('quit');
+      isScrolling = false;
+      settings.showWidget = false;
+      renderUI();
+    });
+  }
 
   speedSlider.addEventListener('input', () => {
     settings.speed = parseInt(speedSlider.value, 10);
@@ -390,7 +415,9 @@
   try {
     browser.storage?.local?.get(SETTINGS_KEY)?.then(result => {
       if (result?.[SETTINGS_KEY]) {
-        Object.assign(settings, result[SETTINGS_KEY]);
+        const stored = result[SETTINGS_KEY];
+        // Whitelist merge — never use Object.assign on storage data (prototype pollution risk)
+        for (const k of SETTINGS_KEYS) { if (k in stored) settings[k] = stored[k]; }
         renderUI();
       }
     })?.catch(() => {});

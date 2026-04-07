@@ -1244,4 +1244,155 @@ describe('pagehide — stops scroll before bfcache', () => {
     const stopped = calls.some(([msg]) => msg?.name === 'stateChanged' && msg?.isScrolling === false);
     expect(stopped).toBe(true);
   });
+
+  test('pageshow with persisted=true → forces stopScroll (bfcache restore safety)', () => {
+    const { runFrame } = createRafQueue();
+    const listener = loadContent();
+    sendMsg(listener, 'start');
+    runFrame(0);
+
+    // Simulate bfcache restore
+    const evt = new Event('pageshow');
+    Object.defineProperty(evt, 'persisted', { value: true });
+    window.dispatchEvent(evt);
+
+    // Next frame should bail out
+    document.documentElement.scrollBy = jest.fn();
+    runFrame(16);
+    expect(document.documentElement.scrollBy).not.toHaveBeenCalled();
+  });
+
+  test('pageshow with persisted=false → no-op (normal navigation)', () => {
+    const { runFrame } = createRafQueue();
+    const listener = loadContent();
+    sendMsg(listener, 'start');
+    runFrame(0);
+
+    const before = browser.runtime.sendMessage.mock.calls.length;
+    const evt = new Event('pageshow');
+    Object.defineProperty(evt, 'persisted', { value: false });
+    window.dispatchEvent(evt);
+
+    // Should NOT trigger an additional stopScroll → no extra stateChanged emit
+    const after = browser.runtime.sendMessage.mock.calls.length;
+    expect(after).toBe(before);
+  });
+});
+
+// ─── Quit feature ────────────────────────────────────────────────────────────
+
+describe('quit feature', () => {
+  test('quit message → scroll stops + widget removed + showWidget=false saved', () => {
+    const { runFrame } = createRafQueue();
+    const listener = loadContent();
+    sendMsg(listener, 'start');
+    runFrame(0);
+
+    // Pre-condition: widget exists, isScrolling=true
+    sendMsg(listener, 'quit');
+
+    // Widget should be removed from DOM
+    expect(document.getElementById('__aws_widget__')).toBeNull();
+
+    // showWidget should be persisted as false
+    const saved = JSON.parse(localStorage.getItem('aws_settings'));
+    expect(saved.showWidget).toBe(false);
+
+    // notifyState should report stopped
+    const stopped = browser.runtime.sendMessage.mock.calls.some(
+      ([msg]) => msg?.name === 'stateChanged' && msg?.isScrolling === false
+    );
+    expect(stopped).toBe(true);
+  });
+
+  test('startScroll after quit → re-enables widget automatically', () => {
+    const { runFrame } = createRafQueue();
+    const listener = loadContent();
+    sendMsg(listener, 'start');
+    runFrame(0);
+    sendMsg(listener, 'quit');
+    expect(document.getElementById('__aws_widget__')).toBeNull();
+
+    // User clicks start again from popup
+    sendMsg(listener, 'start');
+
+    // showWidget should be auto-restored to true
+    const saved = JSON.parse(localStorage.getItem('aws_settings'));
+    expect(saved.showWidget).toBe(true);
+    // Widget should be re-created
+    expect(document.getElementById('__aws_widget__')).not.toBeNull();
+  });
+
+  test('quit while scroll is stopped → still removes widget and saves showWidget=false', () => {
+    const listener = loadContent();
+    // No start — scroll is not running
+    sendMsg(listener, 'quit');
+
+    expect(document.getElementById('__aws_widget__')).toBeNull();
+    const saved = JSON.parse(localStorage.getItem('aws_settings'));
+    expect(saved.showWidget).toBe(false);
+  });
+});
+
+// ─── Stuck-frames detection (end-of-page auto-stop) ──────────────────────────
+
+describe('stuck detection — auto-stop at end of page', () => {
+  // Reset window.scrollY between tests so prior Object.defineProperty doesn't leak
+  afterEach(() => {
+    try { Object.defineProperty(window, 'scrollY', { value: 0, configurable: true, writable: true }); } catch (_) {}
+  });
+
+  test('does NOT stop on non-scrollable page (totalH ≤ viewH)', () => {
+    // Make scrollHeight smaller than viewport → detection skipped
+    const { runFrame } = createRafQueue();
+    const listener = loadContent();
+    // Override AFTER loadContent (which sets scrollHeight=5000)
+    Object.defineProperty(document.documentElement, 'scrollHeight', { value: 100, configurable: true });
+
+    sendMsg(listener, 'start');
+    for (let i = 0; i < 250; i++) runFrame(i * 16);
+
+    // Should still be scrolling — detection gated on totalH > viewH + 10
+    const states = browser.runtime.sendMessage.mock.calls
+      .filter(([msg]) => msg?.name === 'stateChanged')
+      .map(([msg]) => msg.isScrolling);
+    expect(states[states.length - 1]).toBe(true);
+  });
+
+  test('stops on scrollable page when stuck for ≥180 frames at same position', () => {
+    const { runFrame } = createRafQueue();
+    const listener = loadContent();
+    // Pin scrollY constant — scrollBy mock won't change it
+    Object.defineProperty(window, 'scrollY', { get: () => 100, configurable: true });
+    // Make page meaningfully scrollable
+    Object.defineProperty(window, 'innerHeight', { value: 600, configurable: true });
+    Object.defineProperty(document.documentElement, 'scrollHeight', { value: 5000, configurable: true });
+
+    sendMsg(listener, 'start');
+    for (let i = 0; i < 250; i++) runFrame(i * 16);
+
+    // At least one stateChanged with isScrolling=false should have been emitted
+    // (auto-stop after STUCK_FRAMES_THRESHOLD=180 frames).
+    const stoppedEmitted = browser.runtime.sendMessage.mock.calls.some(
+      ([msg]) => msg?.name === 'stateChanged' && msg?.isScrolling === false
+    );
+    expect(stoppedEmitted).toBe(true);
+  });
+
+  test('does NOT stop when loop=true (loop overrides stuck detection)', () => {
+    const { runFrame } = createRafQueue();
+    const listener = loadContent();
+    Object.defineProperty(window, 'scrollY', { get: () => 100, configurable: true });
+    Object.defineProperty(window, 'innerHeight', { value: 600, configurable: true });
+
+    sendMsg(listener, 'updateSettings', { loop: true });
+    sendMsg(listener, 'start');
+    for (let i = 0; i < 200; i++) runFrame(i * 16);
+
+    // loop mode: stuck detection skipped → still running
+    const states = browser.runtime.sendMessage.mock.calls
+      .filter(([msg]) => msg?.name === 'stateChanged')
+      .map(([msg]) => msg.isScrolling);
+    expect(states[states.length - 1]).toBe(true);
+  });
 });

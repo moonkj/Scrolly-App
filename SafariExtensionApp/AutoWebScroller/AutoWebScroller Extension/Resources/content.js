@@ -56,6 +56,19 @@
   const WIDGET_POS_GLOBAL_KEY = 'aws_widget_pos';
   const WIDGET_COLLAPSED_KEY  = 'aws_widget_collapsed';
 
+  // Whitelist of allowed settings keys — single source of truth (prevents prototype pollution
+  // and avoids drift between popup/content). Used wherever a settings object is merged in.
+  const SETTINGS_KEYS = [
+    'speed','speedMode','direction','loop','autoPause','timerMins',
+    'gestureShortcuts','showWidget','widgetOrientation'
+  ];
+
+  // End-of-page stuck detection (prevents apparent "auto-restart" on infinite-scroll pages
+  // where lazy-loaded content makes scrollBy resume after reaching the bottom).
+  let lastScrollPos = -1;
+  let stuckFrames   = 0;
+  const STUCK_FRAMES_THRESHOLD = 180; // ~3s @ 60fps
+
   // ─── Wake Lock ────────────────────────────────────────────────────────────────
 
   async function acquireWakeLock() {
@@ -82,7 +95,7 @@
       const raw = localStorage.getItem(SETTINGS_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        for (const k of ['speed','speedMode','direction','loop','autoPause','timerMins','gestureShortcuts','showWidget','widgetOrientation']) {
+        for (const k of SETTINGS_KEYS) {
           if (k in parsed) settings[k] = parsed[k];
         }
       }
@@ -97,7 +110,7 @@
       if (p) p.then(result => {
         if (result?.[SETTINGS_KEY]) {
           const stored = result[SETTINGS_KEY];
-          for (const k of ['speed','speedMode','direction','loop','autoPause','timerMins','gestureShortcuts','showWidget','widgetOrientation']) {
+          for (const k of SETTINGS_KEYS) {
             if (k in stored) settings[k] = stored[k];
           }
           notifyState(); // Sync popup if open
@@ -214,6 +227,14 @@
           try { scrollTarget.style.setProperty('will-change', 'auto'); } catch (_) {}
           scrollTarget = newTarget;
           try { scrollTarget.style.setProperty('will-change', 'scroll-position'); } catch (_) {}
+          // H1 fix: skip scrollBy on the same frame as a target switch.
+          // iOS Safari does not update scrollTop/scrollHeight synchronously after scrollBy,
+          // so reading state on the next frame is more reliable.
+          lastRafTime    = null;
+          lastScrollPos  = -1;
+          stuckFrames    = 0;
+          scrollInterval = requestAnimationFrame(doScroll);
+          return;
         }
       }
     }
@@ -233,6 +254,9 @@
 
     const pps   = speedToPps(settings.speed);
     const delta = (settings.direction === 'down' ? pps : -pps) * dt / 1000;
+    // Sample current position before scrollBy (for stuck detection)
+    const stRoot     = scrollTarget === document.documentElement;
+    const beforePos  = stRoot ? window.scrollY : scrollTarget.scrollTop;
     // scrollBy: relative write, no implicit layout read (unlike scrollTop +=)
     scrollTarget.scrollBy(0, delta);
 
@@ -244,8 +268,32 @@
       const scrollH    = st.scrollHeight;
       if (settings.direction === 'down' && scrollTop + clientH >= scrollH - 2) {
         isRoot ? window.scrollTo(0, 0) : (st.scrollTop = 0);
+        lastScrollPos = -1; stuckFrames = 0;
       } else if (settings.direction === 'up' && scrollTop <= 2) {
         isRoot ? window.scrollTo(0, scrollH) : (st.scrollTop = scrollH);
+        lastScrollPos = -1; stuckFrames = 0;
+      }
+    } else {
+      // Stuck detection: only when loop is disabled AND the page is meaningfully scrollable.
+      // If the page has no scrollable content (scrollHeight ≈ viewport), we skip the
+      // detection — otherwise tests/jsdom and "no-scroll" pages would falsely trigger stop.
+      // If the page IS scrollable and we've been stuck at the same position for
+      // STUCK_FRAMES_THRESHOLD frames (~3s @ 60fps), we treat it as end-of-page and stop.
+      // This prevents the apparent "auto-restart" behavior on infinite-scroll pages
+      // where lazy-loaded content makes scrollBy resume after reaching the bottom.
+      const totalH = stRoot ? document.documentElement.scrollHeight : scrollTarget.scrollHeight;
+      const viewH  = stRoot ? window.innerHeight                     : scrollTarget.clientHeight;
+      if (totalH > viewH + 10) {
+        if (beforePos === lastScrollPos) {
+          stuckFrames++;
+          if (stuckFrames >= STUCK_FRAMES_THRESHOLD) {
+            stopScroll();
+            return;
+          }
+        } else {
+          stuckFrames   = 0;
+          lastScrollPos = beforePos;
+        }
       }
     }
 
@@ -269,9 +317,17 @@
     lastRafTime        = null;
     spaCheckTimer      = 0;
     scrollTargetTimer  = 0;
+    lastScrollPos      = -1;
+    stuckFrames        = 0;
     scrollTarget       = getScrollTarget();
     // Hint to browser compositor to pre-render scroll tiles
     try { scrollTarget.style.setProperty('will-change', 'scroll-position'); } catch (_) {}
+    // After a quit, re-enable widget so user has a control surface again
+    if (!settings.showWidget) {
+      settings.showWidget = true;
+      autoSaveSettings();
+      showWidget();
+    }
     scrollInterval = requestAnimationFrame(doScroll);
     if (settings.timerMins > 0) {
       timerTimeout = setTimeout(onTimerExpired, settings.timerMins * 60 * 1000);
@@ -296,6 +352,17 @@
   }
 
   function toggleScroll() { isScrolling ? stopScroll() : startScroll(); }
+
+  // Quit: full shutdown — stop scroll, remove widget DOM, persist showWidget=false
+  // so the widget does not reappear on navigation/reload. User must explicitly start
+  // again from the popup to bring it back.
+  function quitScroll() {
+    if (isScrolling) stopScroll();
+    if (widget) { widget.remove(); widget = null; widgetPlayBtn = null; }
+    settings.showWidget = false;
+    autoSaveSettings();
+    notifyState();
+  }
 
   // ─── Notify Popup via background relay ────────────────────────────────────────
 
@@ -719,11 +786,14 @@
         stopScroll();
         break;
 
+      case 'quit':
+        quitScroll();
+        break;
+
       case 'updateSettings': {
         const prevDirection       = settings.direction;
         const prevShowWidget      = settings.showWidget;
         const prevWidgetOrient    = settings.widgetOrientation;
-        const SETTINGS_KEYS = ['speed','speedMode','direction','loop','autoPause','timerMins','gestureShortcuts','showWidget','widgetOrientation'];
         for (const k of SETTINGS_KEYS) { if (k in message) settings[k] = message[k]; }
         if (!['vertical','horizontal'].includes(settings.widgetOrientation)) settings.widgetOrientation = 'vertical';
         // Any popup interaction: inhibit gesture shortcuts for 800ms to avoid
@@ -826,6 +896,17 @@
   // and making scroll impossible to stop. Calling stopScroll() on pagehide cancels
   // the RAF before the page enters bfcache, so there is no stale loop on restore.
   window.addEventListener('pagehide', stopScroll);
+
+  // pageshow with persisted=true means the page was restored from bfcache.
+  // Defensively force-stop any scroll state in case the previous IIFE somehow survived,
+  // and clear stuck-detection state to prevent immediate auto-stop on resume.
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted) {
+      stopScroll();
+      lastScrollPos = -1;
+      stuckFrames   = 0;
+    }
+  });
 
   // ─── Init ─────────────────────────────────────────────────────────────────────
 

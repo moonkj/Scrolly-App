@@ -77,6 +77,28 @@ header {
 .toggle-btn.running { background: var(--accent-stop); color: #fff; }
 .btn-icon  { font-size: 20px; line-height: 1; }
 
+.quit-btn {
+  width: 40px;
+  height: 40px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  background: var(--card-bg);
+  color: var(--text-2);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s, transform 0.1s, border-color 0.15s;
+  flex-shrink: 0;
+}
+.quit-btn:hover {
+  border-color: var(--accent-stop);
+  color: var(--accent-stop);
+}
+.quit-btn:active { transform: scale(0.94); }
+
 .status-dot {
   width: 10px; height: 10px;
   border-radius: 50%;

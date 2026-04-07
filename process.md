@@ -1,5 +1,121 @@
 # AutoWebScroller – 버그 수정 기록
 
+## 2026-04-07 (팀 에이전트 2라운드 — 1라운드 발견 적용 + 신규 버그 수정 + 종료 기능)
+
+### 모드: 5인 팀 에이전트 — 1라운드 발견 + 사용자 보고 신규 버그 + 종료(Quit) 기능 통합 작업
+
+### 1라운드 발견 사항 적용 (즉시 수정)
+
+#### C1 + H3 통합 — `SETTINGS_KEYS` 단일 상수 도입
+- 기존: 설정 키 배열이 4곳에 하드코딩
+  - `popup.js:265` (`applyState`)
+  - `popup.js:393` (`Object.assign` 프로토타입 오염 위험)
+  - `content.js:85, 100` (`loadSiteSettings` 동기/비동기 분기)
+  - `content.js:726` (`updateSettings` 핸들러)
+- 수정:
+  - `content.js`: 상단에 `const SETTINGS_KEYS = [...]` 단일 상수 정의 (storage 키 섹션 옆)
+  - `popup.js`: 동일 상수를 popup에서도 정의 (single source of truth, 미러)
+  - 4곳 모두 이 상수를 사용하도록 통합
+  - `popup.js`의 init `Object.assign` → 화이트리스트 루프로 변경 (프로토타입 오염 차단)
+
+#### H1 — scrollTarget 재감지 race condition 수정 (`content.js:doScroll`)
+- 기존: 재감지 후 같은 프레임에서 `scrollBy()` 호출 → iOS Safari `scrollTop` 비동기 갱신 문제로 다음 프레임에서 이전 값 평가 가능
+- 수정: 타겟 전환 시 같은 프레임의 `scrollBy` 스킵 + `lastRafTime/lastScrollPos/stuckFrames` 리셋 + 다음 RAF 등록 후 즉시 return
+
+### 신규 버그 수정 (사용자 보고)
+
+#### Bug N1 — "화면 끝에 가면 자동으로 프로그램이 재실행되는 현상"
+- 디버거 분석:
+  - `loop=false`일 때 끝에서 처음으로 가는 명시적 경로 없음
+  - 가장 가능성 높은 원인: **무한 스크롤 사이트(트위터/레딧 등)에서 lazy-load로 새 콘텐츠가 추가되면 `scrollHeight`가 증가 → `scrollBy`가 다시 동작 → 사용자에게 "끝났는데 또 시작됨"으로 보임**
+  - 부차 원인: `getScrollTarget`이 inner container를 잡았다가 끝에서 page-first 휴리스틱으로 documentElement로 전환되며 새 위치에서 스크롤 재개
+- 수정: **Stuck 감지 로직 추가** (`content.js:doScroll`)
+  - 매 프레임 `scrollBy` 호출 전 위치(`beforePos`)를 샘플
+  - `loop=false` + 페이지가 실제로 스크롤 가능(`totalH > viewH + 10`)일 때만 작동
+  - 위치가 `STUCK_FRAMES_THRESHOLD = 180` 프레임 (~3초) 동안 변하지 않으면 `stopScroll()` 자동 호출
+  - jsdom/non-scrollable 페이지에서는 detection 자동 비활성화 (false positive 방지)
+  - `startScroll`에서 `lastScrollPos = -1`, `stuckFrames = 0` 초기화
+
+#### Bug N2 — "페이지 옮겨도 동일 현상"
+- 디버거 분석:
+  - `onNavigate` → `stopScroll`만 호출, 자동 재시작 경로 없음
+  - 가설: bfcache 복원 시 `pageshow` 핸들러 부재로 이전 RAF/상태가 stale로 살아남을 가능성
+- 수정: **`pageshow` 핸들러 추가** (`content.js`)
+  - `e.persisted === true` (bfcache 복원) 시 명시적 `stopScroll` + stuck 상태 리셋
+  - 일반 navigation에서는 no-op (성능 영향 없음)
+
+### 신규 기능 — 종료(Quit) 기능
+
+#### UX 설계 (UX Designer + Architect)
+- **stop (현재 토글)**: 일시정지. 위젯 유지, 다시 시작 가능
+- **quit (신규)**: 완전 종료. 위젯 사라짐, `showWidget=false` 영구 저장 → 페이지 이동/리로드 후에도 안 나타남
+- **재사용**: popup의 시작 버튼 누르면 `startScroll()`이 자동으로 `showWidget=true` 복원 + 위젯 재생성
+
+#### 구현 (`content.js`)
+- `quitScroll()` 함수 신규 추가:
+  - `stopScroll()` (이미 실행 중이면)
+  - 위젯 DOM 제거 + JS 참조 정리
+  - `settings.showWidget = false` + `autoSaveSettings()`
+  - `notifyState()` (popup 동기화)
+- `'quit'` 메시지 케이스 추가
+- `startScroll()` 진입 시 `!settings.showWidget`이면 자동으로 `true` 복원 + `showWidget()` 호출
+
+#### 구현 (`popup.js`, `popup.html`, `popup.css`)
+- `popup.html`: `toggle-section`에 `<button id="quitBtn" class="quit-btn">✕</button>` 추가
+- `popup.css`: `.quit-btn` 스타일 — 사각형 outlined 버튼, hover 시 `accent-stop` 컬러
+- `popup.js`: `quitBtn` DOM ref + click 핸들러 → `send('quit')` + 로컬 UI 즉시 갱신
+- `applyI18n`: `data-i18n-title` 속성 처리 추가 (title attribute 다국어 지원)
+
+#### 다국어 (6개 언어 i18n)
+| 언어 | quit_title |
+|------|-----------|
+| ko | 종료 |
+| en | Quit |
+| ja | 終了 |
+| zh | 退出 |
+| fr | Quitter |
+| hi | समाप्त |
+
+### 테스트 (8개 신규 추가, 125 → 133)
+
+#### 신규 describe 블록
+- `pageshow — bfcache restore safety` (2 tests)
+  - `pageshow with persisted=true → forces stopScroll`
+  - `pageshow with persisted=false → no-op`
+- `quit feature` (3 tests)
+  - `quit message → scroll stops + widget removed + showWidget=false saved`
+  - `startScroll after quit → re-enables widget automatically`
+  - `quit while scroll is stopped → still removes widget and saves`
+- `stuck detection — auto-stop at end of page` (3 tests)
+  - `does NOT stop on non-scrollable page (totalH ≤ viewH)`
+  - `stops on scrollable page when stuck for ≥180 frames`
+  - `does NOT stop when loop=true (loop overrides stuck detection)`
+
+#### 결과
+- **133/133 통과**
+- 커버리지: content.js 94.12% / popup.js 92.5% / background.js 94.73% / 전체 93.62% line
+
+### 과학적 토론 (Cross-Layer)
+
+1. **stuck detection vs jsdom**: 첫 구현은 jsdom에서 false positive (scrollBy 후 scrollTop이 갱신 안 됨) → 4개 기존 테스트 깨짐. 해결: `totalH > viewH + 10` 게이트 추가 → 페이지가 실제 스크롤 가능할 때만 검사.
+2. **Quit과 startScroll의 상호작용**: Quit 후 사용자가 다시 시작하려면 위젯도 같이 켜져야 자연스러움. → `startScroll`이 `showWidget` 자동 복원하도록 결정.
+3. **Bug N1 가설 검증**: 코드만 보면 `loop=false`에서 끝에서 재실행되는 명시적 경로 없음. 그러나 사용자 인식이 분명하므로 stuck 감지로 방어. infinite-scroll 사이트에서 가장 효과적.
+
+### Action Items 진행 상황 (1라운드 → 2라운드)
+
+| ID | 1라운드 | 2라운드 |
+|----|---------|---------|
+| C1 (Object.assign) | 발견 | ✅ 수정 |
+| H1 (scrollTarget race) | 발견 | ✅ 수정 |
+| H3 (설정 키 4중 중복) | 발견 | ✅ C1과 통합 수정 |
+| H2 (loop 비활성 layout reads) | 발견 | ⏸ 다음 라운드 (코드 변경 영역과 충돌, 분리 작업 필요) |
+| Bug N1 (끝에서 재실행) | 신규 | ✅ stuck 감지로 수정 |
+| Bug N2 (페이지 이동 재실행) | 신규 | ✅ pageshow 핸들러로 수정 |
+| 종료(Quit) 기능 | 신규 | ✅ 구현 완료 |
+| C2 / M1~M6 / L1~L6 | 발견 | ⏸ 1.1.0 리팩터링 |
+
+---
+
 ## 2026-04-07 (팀 에이전트 1라운드 — 전체 코드 리뷰)
 
 ### 모드: 5인 팀 에이전트 병렬 실행
