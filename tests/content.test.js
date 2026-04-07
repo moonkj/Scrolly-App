@@ -550,13 +550,33 @@ describe('loop boundary reset', () => {
     expect(scrollMock.scrollTop).toBe(scrollMock.scrollHeight);
   });
 
-  test('loop=false: scrollTop NOT reset at boundary', () => {
+  test('loop=false: scrollTop NOT wrapped (no loop reset)', () => {
+    // Use mid-page position so explicit end-of-page check doesn't trigger auto-stop.
+    // The point of this test is that loop=false never wraps scrollTop back to 0.
+    scrollMock.scrollTop = 1000;
     const listener = loadContent();
     document.elementFromPoint = jest.fn(() => scrollMock);
     sendMsg(listener, 'updateSettings', { loop: false, direction: 'down', speed: 3 });
     sendMsg(listener, 'start');
     runFrame(0);
-    expect(scrollMock.scrollTop).toBe(4100); // unchanged
+    expect(scrollMock.scrollTop).toBe(1000); // unchanged — no loop wrap
+  });
+
+  test('loop=false: reaching bottom triggers auto-stop (explicit end-of-page check)', () => {
+    // Start mid-page so startScroll's reposition doesn't fire
+    scrollMock.scrollTop = 1000;
+    const listener = loadContent();
+    document.elementFromPoint = jest.fn(() => scrollMock);
+    sendMsg(listener, 'updateSettings', { loop: false, direction: 'down', speed: 3 });
+    sendMsg(listener, 'start');
+    runFrame(0); // first frame: not at edge → scrollBy called
+    expect(scrollMock.scrollBy).toHaveBeenCalled();
+
+    // Now simulate reaching the bottom
+    scrollMock.scrollTop = 4100; // 4100 + 900 >= 4998
+    scrollMock.scrollBy.mockClear();
+    runFrame(16); // explicit end check → stopScroll, scrollBy NOT called
+    expect(scrollMock.scrollBy).not.toHaveBeenCalled();
   });
 });
 
@@ -710,6 +730,8 @@ describe('direction change special handling', () => {
   afterEach(() => { window.getComputedStyle = origGetComputedStyle; });
 
   test('direction change clears autoPause (userScrolling reset)', () => {
+    // Mid-page so direction change to up doesn't immediately hit end-of-page (top)
+    scrollMock.scrollTop = 1000;
     jest.useFakeTimers();
     const { runFrame } = createRafQueue();
     const listener = loadContent();

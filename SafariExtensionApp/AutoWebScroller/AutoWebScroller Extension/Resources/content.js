@@ -67,7 +67,19 @@
   // where lazy-loaded content makes scrollBy resume after reaching the bottom).
   let lastScrollPos = -1;
   let stuckFrames   = 0;
-  const STUCK_FRAMES_THRESHOLD = 180; // ~3s @ 60fps
+
+  // ─── Tunable Constants ────────────────────────────────────────────────────────
+  const STUCK_FRAMES_THRESHOLD       = 180;   // ~3s @ 60fps — auto-stop after sustained no movement
+  const SPA_CHECK_FRAMES             = 120;   // ~2s — re-inject widget if removed by SPA
+  const SCROLL_TARGET_RECHECK_FRAMES = 300;   // ~5s — re-detect scroll target on infinite-scroll pages
+  const RAF_DELTA_TIME_CAP_MS        = 100;   // cap delta-time to prevent jump after tab switch
+  const AUTOPAUSE_RESUME_DELAY_MS    = 3000;  // resume scroll 3s after user touches stop
+  const GESTURE_INHIBIT_MS           = 800;   // disable gesture shortcuts after popup interaction
+  const MULTI_TAP_WINDOW_MS          = 500;   // double/triple tap detection window
+  const KEEPALIVE_RECONNECT_MS       = 1500;  // delay before reconnecting keepalive port
+  const SPA_REINJECT_DELAY_MS        = 300;   // delay after SPA navigation before widget re-creation
+  const STUCK_VIEWPORT_PADDING_PX    = 10;    // page must exceed viewport by this margin to enable stuck detection
+  const SCROLL_LOOP_EDGE_TOLERANCE   = 2;     // px tolerance for "at edge" detection
 
   // ─── Wake Lock ────────────────────────────────────────────────────────────────
 
@@ -154,7 +166,7 @@
             // Extension disabled — remove widget from DOM
             if (widget) { widget.remove(); widget = null; widgetPlayBtn = null; }
           }
-        }, 1500);
+        }, KEEPALIVE_RECONNECT_MS);
       });
     } catch (_) {
       // connect() failed immediately — extension disabled
@@ -176,12 +188,15 @@
     const cx = window.innerWidth  / 2;
     const cy = window.innerHeight / 2;
     let el = document.elementFromPoint(cx, cy);
-    while (el && el !== document.documentElement) {
+    let depth = 0;
+    // Depth limit guards against pathological DOM nesting (>50 levels)
+    while (el && el !== document.documentElement && depth < 50) {
       const style    = getComputedStyle(el);
       const overflow = style.overflow + style.overflowY;
       if ((overflow.includes('auto') || overflow.includes('scroll')) &&
           el.scrollHeight > el.clientHeight) return el;
       el = el.parentElement;
+      depth++;
     }
     return document.documentElement;
   }
@@ -198,8 +213,8 @@
   function doScroll(timestamp) {
     if (!isScrolling) return;
 
-    // SPA self-heal: throttled to every 120 frames (~2s) to avoid per-frame getElementById
-    if (settings.showWidget && ++spaCheckTimer >= 120) {
+    // SPA self-heal: throttled to avoid per-frame getElementById
+    if (settings.showWidget && ++spaCheckTimer >= SPA_CHECK_FRAMES) {
       spaCheckTimer = 0;
       if (!document.getElementById('__aws_widget__')) {
         widget = null; widgetPlayBtn = null; // reset stale JS refs before recreating
@@ -207,11 +222,11 @@
       }
     }
 
-    // scrollTarget re-detection: every 300 frames (~5s) for infinite-scroll sites.
+    // scrollTarget re-detection: throttled, for infinite-scroll sites.
     // Only switch when the current target has reached the scroll edge in the direction
     // of travel — otherwise a mid-page scrollable div (e.g. comments section) would
     // hijack the target and the page would appear to slow down / stop.
-    if (++scrollTargetTimer >= 300) {
+    if (++scrollTargetTimer >= SCROLL_TARGET_RECHECK_FRAMES) {
       scrollTargetTimer = 0;
       const st = scrollTarget;
       const isRoot       = st === document.documentElement;
@@ -219,8 +234,8 @@
       const scrollHeight = isRoot ? document.body.scrollHeight  : st.scrollHeight;
       const clientHeight = isRoot ? window.innerHeight          : st.clientHeight;
       const atEdge = settings.direction === 'down'
-        ? scrollTop + clientHeight >= scrollHeight - 2   // reached bottom
-        : scrollTop <= 2;                                // reached top
+        ? scrollTop + clientHeight >= scrollHeight - SCROLL_LOOP_EDGE_TOLERANCE
+        : scrollTop <= SCROLL_LOOP_EDGE_TOLERANCE;
       if (atEdge) {
         const newTarget = getScrollTarget();
         if (newTarget !== scrollTarget) {
@@ -249,14 +264,33 @@
 
     // Delta-time: consistent px/second regardless of frame rate
     if (lastRafTime === null) lastRafTime = timestamp;
-    const dt = Math.min(timestamp - lastRafTime, 100); // cap 100ms (tab-switch protection)
+    const dt = Math.min(timestamp - lastRafTime, RAF_DELTA_TIME_CAP_MS); // cap 100ms (tab-switch protection)
     lastRafTime = timestamp;
 
     const pps   = speedToPps(settings.speed);
     const delta = (settings.direction === 'down' ? pps : -pps) * dt / 1000;
-    // Sample current position before scrollBy (for stuck detection)
+    // Sample current position before scrollBy (for stuck detection AND end-of-page check)
     const stRoot     = scrollTarget === document.documentElement;
     const beforePos  = stRoot ? window.scrollY : scrollTarget.scrollTop;
+
+    // Explicit end-of-page check (loop disabled): stop the moment we hit the bottom
+    // (or top) instead of relying solely on stuck detection. This is the primary fix
+    // for "auto-restart at end of page" — without this, on sites where scrollBy keeps
+    // incrementing scrollY, the scroll appears to "restart" via scrollTarget re-detection.
+    // Stuck detection remains as a backup for lazy-load infinite-scroll sites.
+    if (!settings.loop) {
+      const cliH = stRoot ? window.innerHeight : scrollTarget.clientHeight;
+      const scrH = scrollTarget.scrollHeight;
+      if (settings.direction === 'down' && beforePos + cliH >= scrH - SCROLL_LOOP_EDGE_TOLERANCE && scrH > cliH + STUCK_VIEWPORT_PADDING_PX) {
+        stopScroll();
+        return;
+      }
+      if (settings.direction === 'up' && beforePos <= SCROLL_LOOP_EDGE_TOLERANCE && scrH > cliH + STUCK_VIEWPORT_PADDING_PX) {
+        stopScroll();
+        return;
+      }
+    }
+
     // scrollBy: relative write, no implicit layout read (unlike scrollTop +=)
     scrollTarget.scrollBy(0, delta);
 
@@ -266,10 +300,10 @@
       const scrollTop  = isRoot ? window.scrollY    : st.scrollTop;
       const clientH    = isRoot ? window.innerHeight : st.clientHeight;
       const scrollH    = st.scrollHeight;
-      if (settings.direction === 'down' && scrollTop + clientH >= scrollH - 2) {
+      if (settings.direction === 'down' && scrollTop + clientH >= scrollH - SCROLL_LOOP_EDGE_TOLERANCE) {
         isRoot ? window.scrollTo(0, 0) : (st.scrollTop = 0);
         lastScrollPos = -1; stuckFrames = 0;
-      } else if (settings.direction === 'up' && scrollTop <= 2) {
+      } else if (settings.direction === 'up' && scrollTop <= SCROLL_LOOP_EDGE_TOLERANCE) {
         isRoot ? window.scrollTo(0, scrollH) : (st.scrollTop = scrollH);
         lastScrollPos = -1; stuckFrames = 0;
       }
@@ -283,7 +317,7 @@
       // where lazy-loaded content makes scrollBy resume after reaching the bottom.
       const totalH = stRoot ? document.documentElement.scrollHeight : scrollTarget.scrollHeight;
       const viewH  = stRoot ? window.innerHeight                     : scrollTarget.clientHeight;
-      if (totalH > viewH + 10) {
+      if (totalH > viewH + STUCK_VIEWPORT_PADDING_PX) {
         if (beforePos === lastScrollPos) {
           stuckFrames++;
           if (stuckFrames >= STUCK_FRAMES_THRESHOLD) {
@@ -328,6 +362,22 @@
       autoSaveSettings();
       showWidget();
     }
+    // Reposition: if user starts while already at the end of the scroll, jump to the
+    // opposite edge so the scroll has somewhere to go. Without this, doScroll's explicit
+    // end-of-page check would immediately stop on the first frame.
+    if (!settings.loop) {
+      const isRoot = scrollTarget === document.documentElement;
+      const sTop   = isRoot ? window.scrollY : scrollTarget.scrollTop;
+      const cliH   = isRoot ? window.innerHeight : scrollTarget.clientHeight;
+      const scrH   = scrollTarget.scrollHeight;
+      try {
+        if (settings.direction === 'down' && sTop + cliH >= scrH - SCROLL_LOOP_EDGE_TOLERANCE) {
+          if (isRoot) window.scrollTo(0, 0); else scrollTarget.scrollTop = 0;
+        } else if (settings.direction === 'up' && sTop <= SCROLL_LOOP_EDGE_TOLERANCE) {
+          if (isRoot) window.scrollTo(0, scrH); else scrollTarget.scrollTop = scrH;
+        }
+      } catch (_) {} // jsdom doesn't implement window.scrollTo
+    }
     scrollInterval = requestAnimationFrame(doScroll);
     if (settings.timerMins > 0) {
       timerTimeout = setTimeout(onTimerExpired, settings.timerMins * 60 * 1000);
@@ -345,6 +395,10 @@
     clearTimeout(timerTimeout);           timerTimeout   = null;
     clearTimeout(userScrollTimer);        userScrollTimer = null;
     userScrolling = false;
+    // Inhibit gesture shortcuts briefly so an accidental double-tap on page content
+    // (e.g. user trying to zoom or read) immediately after auto-stop does not toggle
+    // the scroll back on. Same window as the popup-interaction inhibit.
+    gestureInhibitUntil = Date.now() + GESTURE_INHIBIT_MS;
     try { if (scrollTarget) scrollTarget.style.setProperty('will-change', 'auto'); } catch (_) {}
     releaseWakeLock();
     updateWidgetUI();
@@ -393,7 +447,7 @@
     userScrollTimer = setTimeout(() => {
       userScrolling = false;
       if (isScrolling && scrollInterval === null) scrollInterval = requestAnimationFrame(doScroll);
-    }, 3000);
+    }, AUTOPAUSE_RESUME_DELAY_MS);
   }
 
   function onTouchStart(e) {
@@ -413,7 +467,7 @@
       userScrollTimer = setTimeout(() => {
         userScrolling = false;
         if (isScrolling && scrollInterval === null) scrollInterval = requestAnimationFrame(doScroll);
-      }, 3000);
+      }, AUTOPAUSE_RESUME_DELAY_MS);
     }
     if (isDragging) onWidgetDragEnd(e);
   }
@@ -430,7 +484,7 @@
     if (Date.now() < gestureInhibitUntil) return; // ignore spurious touches after popup interaction
 
     const now = Date.now();
-    if (now - lastTapTime > 500) tapCount = 0;
+    if (now - lastTapTime > MULTI_TAP_WINDOW_MS) tapCount = 0;
     lastTapTime = now;
     tapCount++;
 
@@ -445,7 +499,7 @@
         updateWidgetUI();
         notifyState();
       }
-    }, 500);
+    }, MULTI_TAP_WINDOW_MS);
   }
 
   // ─── Floating Widget ──────────────────────────────────────────────────────────
@@ -796,9 +850,9 @@
         const prevWidgetOrient    = settings.widgetOrientation;
         for (const k of SETTINGS_KEYS) { if (k in message) settings[k] = message[k]; }
         if (!['vertical','horizontal'].includes(settings.widgetOrientation)) settings.widgetOrientation = 'vertical';
-        // Any popup interaction: inhibit gesture shortcuts for 800ms to avoid
+        // Any popup interaction: inhibit gesture shortcuts briefly to avoid
         // spurious double-tap from iOS touch-through on popup open/close
-        gestureInhibitUntil = Date.now() + 800;
+        gestureInhibitUntil = Date.now() + GESTURE_INHIBIT_MS;
         if (message.direction !== undefined && message.direction !== prevDirection) {
           // Direction changed — cancel autoPause so it takes effect immediately
           userScrolling = false;
@@ -866,14 +920,14 @@
     // code path calls createWidget() during the delay it starts from a clean state.
     if (!document.getElementById('__aws_widget__')) { widget = null; widgetPlayBtn = null; }
 
-    // Re-inject widget after SPA finishes rendering (~300ms delay)
+    // Re-inject widget after SPA finishes rendering
     if (settings.showWidget) {
       setTimeout(() => {
         if (!document.getElementById('__aws_widget__')) {
           widget = null;
           createWidget();
         }
-      }, 300);
+      }, SPA_REINJECT_DELAY_MS);
     }
   }
 
@@ -913,7 +967,7 @@
   loadSiteSettings();
   // Widget creation is deferred into the loadSiteSettings async callback so that
   // cachedWidgetPos is populated before createWidget() runs (avoids cross-site position jump).
-  // 300ms timeout is a fallback in case browser.storage.local is unavailable.
-  setTimeout(() => { if (!widget && settings.showWidget) showWidget(); }, 300);
+  // Fallback timeout in case browser.storage.local is unavailable.
+  setTimeout(() => { if (!widget && settings.showWidget) showWidget(); }, SPA_REINJECT_DELAY_MS);
   notifyState();
 })();

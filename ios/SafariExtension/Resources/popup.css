@@ -78,26 +78,30 @@ header {
 .btn-icon  { font-size: 20px; line-height: 1; }
 
 .quit-btn {
-  width: 40px;
-  height: 40px;
-  border: 1.5px solid var(--border);
-  border-radius: 12px;
-  background: var(--card-bg);
-  color: var(--text-2);
-  font-size: 16px;
-  font-weight: 600;
+  width: 54px;
+  height: 54px;
+  border: none;
+  border-radius: 14px;
+  background: rgba(255, 69, 58, 0.18);
+  color: #FF453A;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s, color 0.15s, transform 0.1s, border-color 0.15s;
+  transition: background 0.15s, transform 0.1s;
   flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
 }
-.quit-btn:hover {
-  border-color: var(--accent-stop);
-  color: var(--accent-stop);
+.quit-btn:hover  { background: rgba(255, 69, 58, 0.28); }
+.quit-btn:active { transform: scale(0.94); background: rgba(255, 69, 58, 0.36); }
+@media (prefers-color-scheme: light) {
+  .quit-btn { background: rgba(255, 59, 48, 0.12); color: #FF3B30; }
+  .quit-btn:hover  { background: rgba(255, 59, 48, 0.22); }
+  .quit-btn:active { background: rgba(255, 59, 48, 0.32); }
 }
-.quit-btn:active { transform: scale(0.94); }
 
 .status-dot {
   width: 10px; height: 10px;

@@ -1,5 +1,68 @@
 # AutoWebScroller – 버그 수정 기록
 
+## 2026-04-07 (v1.0.3 build 2 — 끝에서 재실행 재발견 + Quit 버튼 UI 개선 + 상수화)
+
+### 사용자 보고 (build 1 설치 직후)
+1. **"아직도 화면 끝에 가면 다시 플레이 버튼이 눌러진다"** — build 1의 stuck 감지가 충분치 않음
+2. **종료 ✕ 버튼 크기/색 개선 요청**
+
+### 디버거 재분석 (build 1 stuck 감지 한계)
+1. **lazy-load 사이트**: scrollHeight가 계속 증가 → scrollY도 변함 → stuck 카운터 리셋 → 영원히 못 멈춤
+2. **scrollTarget 점프**: inner div → documentElement 전환 시 새 target의 scrollY=0 → 사용자에게 "처음으로 돌아간 것"으로 보임
+3. **자동 정지 후 우연한 더블탭**: 사용자가 콘텐츠를 zoom 더블탭 → toggleScroll → 다시 시작
+
+### 수정 (3가지 통합)
+
+#### 1. doScroll에 명시적 end-of-page check 추가
+- `loop=false`일 때 매 프레임 `beforePos + cliH >= scrH - 2` 체크
+- atEdge면 `stopScroll()` + return (scrollBy 호출 안 함)
+- 가드: `scrH > cliH + STUCK_VIEWPORT_PADDING_PX` — non-scrollable 페이지에선 비활성
+- 기존 stuck 감지는 lazy-load 백업으로 유지
+
+#### 2. startScroll에 시작 위치 reposition
+- `loop=false` + 끝에 있는 상태에서 시작 → 자동으로 처음(또는 끝)으로 이동
+- 사용자가 끝에 있어서 즉시 stop되는 것을 방지
+- 다운: `scrollTo(0, 0)`, 업: `scrollTo(0, scrollHeight)`
+- jsdom warning 방지 try/catch
+
+#### 3. stopScroll에 gesture inhibit 800ms 자동 설정
+- 자동 정지 후 사용자가 페이지를 우연히 더블탭(zoom 시도 등) 시 toggleScroll 발동 방지
+- popup interaction의 800ms inhibit과 동일 메커니즘
+
+### 부수 작업 — Magic Numbers 상수화 (1라운드 L3 처리)
+| 상수 | 값 | 의미 |
+|------|-----|------|
+| `STUCK_FRAMES_THRESHOLD` | 180 | ~3s @ 60fps stuck 감지 임계 |
+| `SPA_CHECK_FRAMES` | 120 | ~2s SPA 위젯 재주입 throttle |
+| `SCROLL_TARGET_RECHECK_FRAMES` | 300 | ~5s scrollTarget 재감지 throttle |
+| `RAF_DELTA_TIME_CAP_MS` | 100 | tab switch 보호 cap |
+| `AUTOPAUSE_RESUME_DELAY_MS` | 3000 | autoPause 후 재개 지연 |
+| `GESTURE_INHIBIT_MS` | 800 | 제스처 비활성 윈도우 |
+| `MULTI_TAP_WINDOW_MS` | 500 | 더블/트리플 탭 인식 시간 |
+| `KEEPALIVE_RECONNECT_MS` | 1500 | 확장 비활성 감지 후 재연결 시도 |
+| `SPA_REINJECT_DELAY_MS` | 300 | SPA navigation 후 위젯 재생성 지연 |
+| `STUCK_VIEWPORT_PADDING_PX` | 10 | stuck 감지 활성 페이지 최소 크기 마진 |
+| `SCROLL_LOOP_EDGE_TOLERANCE` | 2 | "at edge" 판정 px 허용 |
+
+### 부수 작업 — L5 getScrollTarget 깊이 제한
+- `while` 루프에 `depth < 50` 가드 추가
+- 극단적 DOM 깊이(>50 레벨)에서 stack overflow 방지
+
+### UX1 — Quit 버튼 (✕) 크기/색 개선 (popup.css)
+- 크기: `40x40` → `54x54` (시작 버튼과 비슷한 비주얼 무게)
+- 색상: outlined gray → **filled red** (`rgba(255, 69, 58, 0.18)` + `#FF453A`)
+- 폰트: 16px → 24px (✕ 강조)
+- 다크/라이트 모드 별도 미디어 쿼리
+- hover/active 상태 강조 + scale 0.94
+
+### 테스트 (133 → 134)
+- 기존 `loop boundary reset` 테스트 mid-page로 수정 (boundary에서 새 동작 충돌)
+- 신규 `loop=false: reaching bottom triggers auto-stop` 테스트 추가
+- 기존 `direction change clears autoPause` mid-page로 수정 (top edge에서 즉시 정지 문제)
+- 134/134 통과
+
+---
+
 ## 2026-04-07 (팀 에이전트 2라운드 — 1라운드 발견 적용 + 신규 버그 수정 + 종료 기능)
 
 ### 모드: 5인 팀 에이전트 — 1라운드 발견 + 사용자 보고 신규 버그 + 종료(Quit) 기능 통합 작업
