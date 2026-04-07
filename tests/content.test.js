@@ -563,6 +563,11 @@ describe('loop boundary reset', () => {
   });
 
   test('loop=false: reaching bottom triggers auto-stop (explicit end-of-page check)', () => {
+    // Pin Date.now so we can control the explicit end-of-page grace period
+    const realNow = Date.now;
+    let now = 1_000_000;
+    Date.now = jest.fn(() => now);
+
     // Start mid-page so startScroll's reposition doesn't fire
     scrollMock.scrollTop = 1000;
     const listener = loadContent();
@@ -572,11 +577,16 @@ describe('loop boundary reset', () => {
     runFrame(0); // first frame: not at edge → scrollBy called
     expect(scrollMock.scrollBy).toHaveBeenCalled();
 
+    // Advance past the 300ms grace period
+    now += 500;
+
     // Now simulate reaching the bottom
     scrollMock.scrollTop = 4100; // 4100 + 900 >= 4998
     scrollMock.scrollBy.mockClear();
     runFrame(16); // explicit end check → stopScroll, scrollBy NOT called
     expect(scrollMock.scrollBy).not.toHaveBeenCalled();
+
+    Date.now = realNow;
   });
 });
 

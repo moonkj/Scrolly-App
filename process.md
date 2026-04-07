@@ -1,5 +1,54 @@
 # AutoWebScroller – 버그 수정 기록
 
+## 2026-04-07 (v1.0.3 build 6/7 — build 5 종합 회귀 대응 + 팀 에이전트 검증)
+
+### 사용자 보고 (build 5 직후)
+1. "미니컨트롤이 꺼져있는 상태에서 페이지가 바뀌면 갑자기 다시 생김"
+2. "페이지가 바뀌니까 미니컨트롤 사이즈가 갑자기 작아지기도 함"
+3. "미니컨트롤을 껐는데도 안 꺼지고 미니컨트롤이 엄청 작음"
+4. "시작버튼을 눌렀는데 시작도 안 됨"
+5. "미니컨트롤 가로세로 버튼 눌러도 변경 없음"
+6. "전체적으로 다 이상해짐 — 팀 에이전트 확인해줘"
+
+### Architect 즉시 결정
+build 5의 `loadSiteSettings` 구조 변경 (setTimeout fallback 제거 + 비동기 콜백 단독 책임 + 1500ms 하드 fallback)이 너무 공격적 — 여러 회귀 발생.
+
+**부분 롤백 전략 (build 6)**
+- `loadSiteSettings`를 build 4 방식 (setTimeout fallback + 비동기 콜백에서 사후 정정)으로 복원
+- build 5의 안전망은 유지:
+  - `createWidget` 진입 가드 (`if (!settings.showWidget) return;`)
+  - `onNavigate` setTimeout 안에서 `settings.showWidget` 재체크
+- **`widgetCollapsed` cross-domain 동기화 제거** (browser.storage.local에서 widgetCollapsed 키 제거) — 사용자가 한 사이트에서 우연히 collapse한 것이 다른 사이트로 전파되는 부작용 차단
+
+### 팀 에이전트 가동 (Debugger + Tester+Reviewer 병렬 검증)
+
+#### Debugger 보고
+- **Critical 1 (hideWidget)**: hideWidget()이 settings.showWidget=false 미설정 → 사후 검증으로 무효 (메시지 핸들러 'hideWidget'에서 이미 set, popup에서 동시에 updateSettings 발송)
+- **Critical 2 (startScroll reposition vs explicit end check)**: ⚠️ **유효** — 짧은/특정 페이지 또는 reposition 비동기 갱신 지연 시 첫 프레임에서 즉시 정지 가능
+- **High (loadSiteSettings race)**: build 6 부분 롤백으로 해소
+
+#### Tester+Reviewer 보고
+- 사용자 보고 6가지 시나리오 모두 build 6에서 cover됨 검증
+- 출시 가능 판정 ✅
+- 누락 테스트 P0 3건 추가 권장
+
+### 추가 안전망 (build 7)
+Debugger Critical 2 대응:
+- 새 변수 `scrollStartedAt` 추가 (`startScroll` 호출 시 `Date.now()` 기록)
+- doScroll의 explicit end-of-page check에 **300ms grace period** 추가
+  - `if (!settings.loop && Date.now() - scrollStartedAt > 300) { ... }`
+  - 시작 직후 첫 프레임에서 false-positive stop 방지
+  - iOS Safari의 `window.scrollTo` 비동기 갱신, reposition 미적용 등 케이스 모두 대응
+
+### 테스트 (134/134 통과)
+- `loop=false: reaching bottom triggers auto-stop` 테스트에 `Date.now()` mock + grace period 경과 처리 추가
+
+### 빌드: 1.0.3 build 7
+- iPhone Air + iPad Pro 양쪽 즉시 설치
+- App Store Connect 업로드는 사용자 검증 후로 보류 (build 5 회귀 영향 확인 후 결정)
+
+---
+
 ## 2026-04-07 (v1.0.3 build 5 — 위젯 사이즈 깜빡임 + 위젯 부활 통합 수정)
 
 ### 사용자 추가 보고 (build 4 직후)

@@ -67,6 +67,7 @@
   // where lazy-loaded content makes scrollBy resume after reaching the bottom).
   let lastScrollPos = -1;
   let stuckFrames   = 0;
+  let scrollStartedAt = 0; // timestamp of last startScroll — explicit end check grace period
 
   // ─── Tunable Constants ────────────────────────────────────────────────────────
   const STUCK_FRAMES_THRESHOLD       = 180;   // ~3s @ 60fps — auto-stop after sustained no movement
@@ -80,7 +81,6 @@
   const SPA_REINJECT_DELAY_MS        = 300;   // delay after SPA navigation before widget re-creation
   const STUCK_VIEWPORT_PADDING_PX    = 10;    // page must exceed viewport by this margin to enable stuck detection
   const SCROLL_LOOP_EDGE_TOLERANCE   = 2;     // px tolerance for "at edge" detection
-  const WIDGET_INIT_FALLBACK_MS      = 1500;  // hard fallback for widget creation if async storage hangs
 
   // ─── Wake Lock ────────────────────────────────────────────────────────────────
 
@@ -118,53 +118,35 @@
       if (localStorage.getItem(WIDGET_COLLAPSED_KEY) === '1') widgetCollapsed = true;
     } catch (_) {}
     // Async: override with extension storage (cross-domain, survives navigation).
-    // The widget is intentionally created HERE inside the async callback (or in the
-    // unavailability fallback below) — never speculatively before the callback resolves.
-    // Otherwise, on cross-domain nav, the sync localStorage read sees default values
-    // (because localStorage is per-origin), the widget gets created with defaults, and
-    // then the async result (showWidget=false, widgetCollapsed=true, etc.) arrives and
-    // mutates the visible widget — causing the "widget reappears after quit" and
-    // "widget suddenly shrinks" bugs.
-    let _asyncDone = false;
+    // NOTE on widgetCollapsed: we deliberately DO NOT cross-domain-sync this state.
+    // collapsed is stored only per-origin (localStorage above) — otherwise an accidental
+    // collapse on one site would shrink the widget on every other site the user visits.
     try {
-      const p = browser.storage?.local?.get([SETTINGS_KEY, WIDGET_COLLAPSED_KEY, WIDGET_POS_GLOBAL_KEY]);
-      if (p) {
-        p.then(result => {
-          if (result?.[SETTINGS_KEY]) {
-            const stored = result[SETTINGS_KEY];
-            for (const k of SETTINGS_KEYS) {
-              if (k in stored) settings[k] = stored[k];
-            }
-            notifyState(); // Sync popup if open
+      const p = browser.storage?.local?.get([SETTINGS_KEY, WIDGET_POS_GLOBAL_KEY]);
+      if (p) p.then(result => {
+        if (result?.[SETTINGS_KEY]) {
+          const stored = result[SETTINGS_KEY];
+          for (const k of SETTINGS_KEYS) {
+            if (k in stored) settings[k] = stored[k];
           }
-          if (result?.[WIDGET_COLLAPSED_KEY] !== undefined) {
-            widgetCollapsed = result[WIDGET_COLLAPSED_KEY];
+          // Cross-domain navigation: localStorage was per-origin so the sync read above
+          // missed our quit state. If the user has quit (showWidget=false), tear down any
+          // widget that was already created speculatively by the init fallback below.
+          if (!settings.showWidget && widget) {
+            widget.remove();
+            widget = null;
+            widgetPlayBtn = null;
           }
-          if (result?.[WIDGET_POS_GLOBAL_KEY]) {
-            const raw = result[WIDGET_POS_GLOBAL_KEY];
-            if (raw && Number.isFinite(raw.x) && Number.isFinite(raw.y)) cachedWidgetPos = raw;
-          }
-          _asyncDone = true;
-          // Create widget once with the fully-resolved settings (no later mutation surprise)
-          if (!widget && settings.showWidget) showWidget();
-        }).catch(() => {
-          _asyncDone = true;
-          if (!widget && settings.showWidget) showWidget();
-        });
-      } else {
-        // browser.storage.local unavailable — fall back to sync settings only
-        _asyncDone = true;
+          notifyState(); // Sync popup if open
+        }
+        if (result?.[WIDGET_POS_GLOBAL_KEY]) {
+          const raw = result[WIDGET_POS_GLOBAL_KEY];
+          if (raw && Number.isFinite(raw.x) && Number.isFinite(raw.y)) cachedWidgetPos = raw;
+        }
+        // Try to create the widget now that cachedWidgetPos is ready (no-op if already exists)
         if (!widget && settings.showWidget) showWidget();
-      }
-    } catch (_) {
-      _asyncDone = true;
-      if (!widget && settings.showWidget) showWidget();
-    }
-    // Hard fallback: if the async path is still pending after WIDGET_INIT_FALLBACK_MS
-    // (browser.storage.local is hung), create the widget with whatever sync settings we have.
-    setTimeout(() => {
-      if (!_asyncDone && !widget && settings.showWidget) showWidget();
-    }, WIDGET_INIT_FALLBACK_MS);
+      }).catch(() => {});
+    } catch (_) {}
   }
 
   function autoSaveSettings() {
@@ -300,11 +282,13 @@
     const beforePos  = stRoot ? window.scrollY : scrollTarget.scrollTop;
 
     // Explicit end-of-page check (loop disabled): stop the moment we hit the bottom
-    // (or top) instead of relying solely on stuck detection. This is the primary fix
-    // for "auto-restart at end of page" — without this, on sites where scrollBy keeps
-    // incrementing scrollY, the scroll appears to "restart" via scrollTarget re-detection.
-    // Stuck detection remains as a backup for lazy-load infinite-scroll sites.
-    if (!settings.loop) {
+    // (or top) instead of relying solely on stuck detection.
+    //
+    // Grace period: skip the check for the first 300ms after startScroll. This protects
+    // against false-positive stops when the user starts on a page that's already at the
+    // end (the reposition in startScroll may not have taken effect yet — iOS Safari may
+    // delay window.scrollTo updates until the next layout pass).
+    if (!settings.loop && Date.now() - scrollStartedAt > 300) {
       const cliH = stRoot ? window.innerHeight : scrollTarget.clientHeight;
       const scrH = scrollTarget.scrollHeight;
       if (settings.direction === 'down' && beforePos + cliH >= scrH - SCROLL_LOOP_EDGE_TOLERANCE && scrH > cliH + STUCK_VIEWPORT_PADDING_PX) {
@@ -379,6 +363,7 @@
     scrollTargetTimer  = 0;
     lastScrollPos      = -1;
     stuckFrames        = 0;
+    scrollStartedAt    = Date.now(); // grace period anchor for explicit end-of-page check
     scrollTarget       = getScrollTarget();
     // Hint to browser compositor to pre-render scroll tiles
     try { scrollTarget.style.setProperty('will-change', 'scroll-position'); } catch (_) {}
@@ -536,6 +521,9 @@
 
   function createWidget() {
     if (widget) return;
+    // Defensive guard: never create the widget if it's been disabled. This catches any
+    // setTimeout/SPA self-heal path that might race past a showWidget=false update.
+    if (!settings.showWidget) return;
     // widgetCollapsed keeps its current value (set by loadSiteSettings on init,
     // or preserved across SPA navigations since JS context is retained)
 
@@ -946,9 +934,11 @@
     // code path calls createWidget() during the delay it starts from a clean state.
     if (!document.getElementById('__aws_widget__')) { widget = null; widgetPlayBtn = null; }
 
-    // Re-inject widget after SPA finishes rendering
+    // Re-inject widget after SPA finishes rendering. Re-check showWidget inside the
+    // timer because the user may have toggled it off during the 300ms delay.
     if (settings.showWidget) {
       setTimeout(() => {
+        if (!settings.showWidget) return; // user toggled off in the meantime
         if (!document.getElementById('__aws_widget__')) {
           widget = null;
           createWidget();
@@ -991,8 +981,11 @@
   // ─── Init ─────────────────────────────────────────────────────────────────────
 
   loadSiteSettings();
-  // Widget creation is fully owned by loadSiteSettings (sync/async/catch/hard-fallback).
-  // Do NOT create the widget here speculatively — that races with the async storage
-  // result and causes "widget reappears after quit" / "widget shrinks suddenly" bugs.
+  // Widget init: try after the async storage callback has had a chance to resolve.
+  // The async callback in loadSiteSettings will create the widget if cross-domain
+  // settings arrive in time; this fallback handles cases where browser.storage.local
+  // is unavailable or slow. createWidget() has a defensive `!settings.showWidget` guard
+  // so a quit-before-fallback race can't accidentally re-create the widget.
+  setTimeout(() => { if (!widget && settings.showWidget) showWidget(); }, SPA_REINJECT_DELAY_MS);
   notifyState();
 })();
