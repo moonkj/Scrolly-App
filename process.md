@@ -24,6 +24,11 @@
 
 ### 빌드: 1.0.3 build 3 → archive + App Store Connect 업로드
 
+### 설치 완료
+- iPhone Air (`835A5E84-05B4-520C-B52C-E69BBEE38FED`) — 잠금 해제 후 즉시 설치
+- iPad Pro 12.9" (`A0C29C08-D963-5E50-A159-906B69617CBA`) — 잠금 해제 후 설치
+- App Store Connect: v1.0.3 build 1, 2, 3 모두 업로드 (심사 제출 시 build 3 선택 권장)
+
 ---
 
 ## 2026-04-07 (v1.0.3 build 2 — 끝에서 재실행 재발견 + Quit 버튼 UI 개선 + 상수화)
