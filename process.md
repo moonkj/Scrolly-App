@@ -1,5 +1,31 @@
 # AutoWebScroller – 버그 수정 기록
 
+## 2026-04-07 (v1.0.3 build 3 — Main.html 화면 반토막 회귀 수정)
+
+### 사용자 보고
+- 네이티브 앱 첫 화면이 좌측 절반에만 표시됨, 우측은 빈 공간 + 작은 `<` 백 버튼 + legal-page-title placeholder
+
+### 디버거 분석
+- 2026-02-25 fix와 동일한 회귀 (process.md 256줄 참조)
+- v1.0.2 fix에서 `style="display:none"` 인라인 스타일로 되돌렸으나 **CSP에 `style-src` 지정 누락**
+  - 현재 CSP: `default-src 'self'; script-src 'self' 'unsafe-inline'`
+  - `default-src 'self'`가 style 폴백으로 적용되어 인라인 style 차단
+  - `#legal-view`의 `style="display:none"` 무효 → display:flex 적용 → main과 나란히 → 반토막
+- JS의 `element.style.display = 'none'`은 CSSOM 직접 조작이라 CSP 영향 없음 → 들어갔다 나오면 정상으로 표시되는 이전 증상 동일
+
+### 수정 (Main.html)
+```diff
+- <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'">
++ <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'">
+```
+- 최소 변경으로 인라인 style 허용
+- 기존 코드(인라인 `style="display:none"` + JS `style.display` 직접 조작) 그대로 유지
+- 외부 URL 버튼 동작 (`window.openExternalURL`) 영향 없음
+
+### 빌드: 1.0.3 build 3 → archive + App Store Connect 업로드
+
+---
+
 ## 2026-04-07 (v1.0.3 build 2 — 끝에서 재실행 재발견 + Quit 버튼 UI 개선 + 상수화)
 
 ### 사용자 보고 (build 1 설치 직후)
