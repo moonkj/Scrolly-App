@@ -1,5 +1,76 @@
 # AutoWebScroller – 버그 수정 기록
 
+## 2026-04-07 (v1.0.3 build 5 — 위젯 사이즈 깜빡임 + 위젯 부활 통합 수정)
+
+### 사용자 추가 보고 (build 4 직후)
+- "페이지가 바뀌니까 미니컨트롤 사이즈가 갑자기 작아지기도 함"
+
+### 디버거 분석 (build 4의 부분 수정 한계)
+build 4는 비동기 콜백에서 `showWidget=false` 시 위젯을 사후 제거했지만, **위젯이 잠시 보였다 제거되는 깜빡임**이 남아있음. 같은 race가 `widgetCollapsed`에도 적용:
+- setTimeout fallback이 만든 위젯: `widgetCollapsed=false` (기본값) → 일반 크기로 표시
+- 비동기 콜백 도착 → `widgetCollapsed=true` 적용 → `_applyWidgetCollapsedState` → 위젯이 갑자기 작아짐
+- 사용자 시각: "사이즈가 갑자기 작아지기도 함"
+
+### 근본 수정 (loadSiteSettings 구조 변경)
+**전략**: 위젯 생성을 setTimeout fallback에서 완전히 제거하고, `loadSiteSettings`가 모든 경로(sync/async/catch/하드 fallback)에서 위젯 생성을 단독으로 책임지게 함. 비동기 storage가 완전히 해소된 후에만 위젯이 만들어지므로 사후 mutation 깜빡임 자체가 사라짐.
+
+#### 변경 (`content.js`)
+- `loadSiteSettings` 안에 `_asyncDone` 플래그 추가
+- 비동기 콜백 `.then(...)` 안에서만 위젯 생성 (정상 경로)
+- `.catch(...)` 안에서도 위젯 생성 (storage 거부 시)
+- `p` 자체가 `null` (`browser.storage` 미지원)이면 즉시 위젯 생성
+- try의 동기 throw catch에서도 위젯 생성
+- **하드 fallback**: `WIDGET_INIT_FALLBACK_MS = 1500ms` 후에도 비동기 미해소면 위젯 생성 (storage 무한 대기 방어)
+- init의 `setTimeout(showWidget, SPA_REINJECT_DELAY_MS)` 제거 — `loadSiteSettings`가 단독 책임
+
+#### 효과
+- ✅ 위젯이 잘못된 상태로 미리 만들어지지 않음 (race 원천 차단)
+- ✅ "Quit 후 페이지 이동 시 위젯 부활" 사라짐 (build 4 fix와 같은 원인의 더 깨끗한 해결)
+- ✅ "위젯이 갑자기 작아짐" 사라짐 (이번에 해결)
+- ✅ 위젯 위치 점프 사라짐 (cachedWidgetPos 적용 후 단 한 번 생성)
+
+### 빌드: 1.0.3 build 5
+- iPhone Air + iPad Pro 양쪽 즉시 설치
+- App Store Connect 업로드 진행 중
+
+---
+
+## 2026-04-07 (v1.0.3 build 4 — Quit 후 cross-domain 위젯 부활 버그)
+
+### 사용자 보고
+- "미니컨트롤이 꺼져있는 상태에서 페이지가 바뀌면 갑자기 다시 생김"
+
+### 디버거 분석 (race condition)
+시나리오:
+1. 사용자가 사이트 A에서 ✕ 종료 → `quitScroll` → `settings.showWidget=false` 저장
+   - localStorage: 사이트 A의 도메인에만 저장 (도메인 격리)
+   - browser.storage.local: 비동기로 저장 (cross-domain 동기화)
+2. 사용자가 사이트 B로 이동 → 새 IIFE 실행 (cross-domain navigation)
+3. `loadSiteSettings()`:
+   - **동기**: 사이트 B의 localStorage 읽음 → `aws_settings` 키 없음 (도메인 격리) → `showWidget=true` 기본값 유지
+   - **비동기**: `browser.storage.local` 응답 대기 중...
+4. `setTimeout(SPA_REINJECT_DELAY_MS=300ms)` 발동 → `settings.showWidget=true`(아직 기본값) → **위젯 생성!**
+5. 비동기 콜백 도착 → `showWidget=false`로 업데이트 → 그러나 이미 위젯이 만들어졌고 제거 로직 없음
+
+→ 결과: 사용자가 종료한 위젯이 다른 사이트에서 다시 나타남
+
+### 수정 (content.js loadSiteSettings 비동기 콜백)
+- 비동기 콜백에서 `showWidget=false`로 업데이트되었는데 이미 위젯이 만들어진 경우 → 즉시 제거
+```js
+if (!settings.showWidget && widget) {
+  widget.remove();
+  widget = null;
+  widgetPlayBtn = null;
+}
+```
+- 사용자에게는 잠깐 위젯이 보였다가 사라질 수 있지만, 정확한 상태로 수렴
+
+### 빌드: 1.0.3 build 4
+- iPhone Air + iPad Pro 양쪽 설치 완료
+- App Store Connect 업로드 진행 중
+
+---
+
 ## 2026-04-07 (v1.0.3 build 3 — Main.html 화면 반토막 회귀 수정)
 
 ### 사용자 보고

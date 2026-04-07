@@ -80,6 +80,7 @@
   const SPA_REINJECT_DELAY_MS        = 300;   // delay after SPA navigation before widget re-creation
   const STUCK_VIEWPORT_PADDING_PX    = 10;    // page must exceed viewport by this margin to enable stuck detection
   const SCROLL_LOOP_EDGE_TOLERANCE   = 2;     // px tolerance for "at edge" detection
+  const WIDGET_INIT_FALLBACK_MS      = 1500;  // hard fallback for widget creation if async storage hangs
 
   // ─── Wake Lock ────────────────────────────────────────────────────────────────
 
@@ -116,29 +117,54 @@
     try {
       if (localStorage.getItem(WIDGET_COLLAPSED_KEY) === '1') widgetCollapsed = true;
     } catch (_) {}
-    // Async: override with extension storage (cross-domain, survives navigation)
+    // Async: override with extension storage (cross-domain, survives navigation).
+    // The widget is intentionally created HERE inside the async callback (or in the
+    // unavailability fallback below) — never speculatively before the callback resolves.
+    // Otherwise, on cross-domain nav, the sync localStorage read sees default values
+    // (because localStorage is per-origin), the widget gets created with defaults, and
+    // then the async result (showWidget=false, widgetCollapsed=true, etc.) arrives and
+    // mutates the visible widget — causing the "widget reappears after quit" and
+    // "widget suddenly shrinks" bugs.
+    let _asyncDone = false;
     try {
       const p = browser.storage?.local?.get([SETTINGS_KEY, WIDGET_COLLAPSED_KEY, WIDGET_POS_GLOBAL_KEY]);
-      if (p) p.then(result => {
-        if (result?.[SETTINGS_KEY]) {
-          const stored = result[SETTINGS_KEY];
-          for (const k of SETTINGS_KEYS) {
-            if (k in stored) settings[k] = stored[k];
+      if (p) {
+        p.then(result => {
+          if (result?.[SETTINGS_KEY]) {
+            const stored = result[SETTINGS_KEY];
+            for (const k of SETTINGS_KEYS) {
+              if (k in stored) settings[k] = stored[k];
+            }
+            notifyState(); // Sync popup if open
           }
-          notifyState(); // Sync popup if open
-        }
-        if (result?.[WIDGET_COLLAPSED_KEY] !== undefined) {
-          widgetCollapsed = result[WIDGET_COLLAPSED_KEY];
-          _applyWidgetCollapsedState();
-        }
-        if (result?.[WIDGET_POS_GLOBAL_KEY]) {
-          const raw = result[WIDGET_POS_GLOBAL_KEY];
-          if (raw && Number.isFinite(raw.x) && Number.isFinite(raw.y)) cachedWidgetPos = raw;
-        }
-        // Create widget now that cachedWidgetPos is ready — avoids position jump on cross-site nav
+          if (result?.[WIDGET_COLLAPSED_KEY] !== undefined) {
+            widgetCollapsed = result[WIDGET_COLLAPSED_KEY];
+          }
+          if (result?.[WIDGET_POS_GLOBAL_KEY]) {
+            const raw = result[WIDGET_POS_GLOBAL_KEY];
+            if (raw && Number.isFinite(raw.x) && Number.isFinite(raw.y)) cachedWidgetPos = raw;
+          }
+          _asyncDone = true;
+          // Create widget once with the fully-resolved settings (no later mutation surprise)
+          if (!widget && settings.showWidget) showWidget();
+        }).catch(() => {
+          _asyncDone = true;
+          if (!widget && settings.showWidget) showWidget();
+        });
+      } else {
+        // browser.storage.local unavailable — fall back to sync settings only
+        _asyncDone = true;
         if (!widget && settings.showWidget) showWidget();
-      }).catch(() => {});
-    } catch (_) {}
+      }
+    } catch (_) {
+      _asyncDone = true;
+      if (!widget && settings.showWidget) showWidget();
+    }
+    // Hard fallback: if the async path is still pending after WIDGET_INIT_FALLBACK_MS
+    // (browser.storage.local is hung), create the widget with whatever sync settings we have.
+    setTimeout(() => {
+      if (!_asyncDone && !widget && settings.showWidget) showWidget();
+    }, WIDGET_INIT_FALLBACK_MS);
   }
 
   function autoSaveSettings() {
@@ -965,9 +991,8 @@
   // ─── Init ─────────────────────────────────────────────────────────────────────
 
   loadSiteSettings();
-  // Widget creation is deferred into the loadSiteSettings async callback so that
-  // cachedWidgetPos is populated before createWidget() runs (avoids cross-site position jump).
-  // Fallback timeout in case browser.storage.local is unavailable.
-  setTimeout(() => { if (!widget && settings.showWidget) showWidget(); }, SPA_REINJECT_DELAY_MS);
+  // Widget creation is fully owned by loadSiteSettings (sync/async/catch/hard-fallback).
+  // Do NOT create the widget here speculatively — that races with the async storage
+  // result and causes "widget reappears after quit" / "widget shrinks suddenly" bugs.
   notifyState();
 })();
