@@ -1,5 +1,76 @@
 # AutoWebScroller – 버그 수정 기록
 
+## 2026-04-07 (v1.0.3 build 8 — 미니 플로팅 위젯 부활 근본 원인 해결)
+
+### 사용자 보고 (build 7 이후)
+**"페이지가 바뀌거나 화면 확대 축소시 간헐적으로 기능이 꺼져있음에도 다시 켜지는 현상"**
+— 미니플로팅 위젯이 OFF(quit) 상태인데 부활하는 버그. build 4~7에서 반복 시도했으나 미해결.
+
+### 팀 에이전트 비상 가동 (Debugger + Tester 병렬)
+
+#### 근본 원인 (두 팀원 독립적 합의)
+
+**`startScroll()` 라인 371-374의 showWidget 강제 활성화 로직:**
+```javascript
+if (!settings.showWidget) {
+  settings.showWidget = true;    // ← quit 상태를 무시하고 강제 true!
+  autoSaveSettings();
+  showWidget();                   // ← 위젯 부활!
+}
+```
+
+**발동 경로**: 사용자가 quit(OFF) → iOS Safari 더블탭(줌 시도) → `handleGestureTap` 감지 → `toggleScroll()` → `startScroll()` → showWidget 강제 true → **위젯 부활**
+
+#### 증상-원인 매핑
+| 사용자 증상 | 코드 경로 |
+|-----------|---------|
+| "화면 확대 축소시" | 더블탭 줌 → gesture 더블탭 감지 |
+| "페이지가 바뀔 때" | SPA navigation 후 우연한 더블탭 |
+| "간헐적" | 더블탭 타이밍이 500ms 안에 들어야 해서 |
+| "기능이 꺼져있음에도" | quit → showWidget=false 상태 |
+
+#### 과학적 토론
+- **Debugger**: startScroll의 showWidget 강제 활성화가 Critical. 제거 권장.
+- **Tester**: 동의. handleGestureTap에서도 quit 상태면 더블탭 무시하는 2중 방어 권장.
+- **Architect 판정**: 두 팀원 합의 수용. 3가지 통합 수정.
+
+### 수정 (3가지)
+
+#### 1. `startScroll()`에서 showWidget 자동 복원 완전 제거 (content.js)
+- 사용자가 quit했으면 그 의도를 존중
+- 위젯 없이도 스크롤은 정상 동작 (popup으로 제어)
+- popup에서 명시적 시작 시에만 위젯 복원 (아래 #3)
+
+#### 2. `handleGestureTap()`에 quit 방어선 추가 (content.js)
+```javascript
+if (count === 2) {
+  if (!settings.showWidget && !isScrolling) return; // quit 상태면 더블탭 무시
+  toggleScroll();
+}
+```
+- 2중 방어: startScroll에서 복원을 안 해도, 더블탭 자체를 차단
+
+#### 3. popup.js toggleBtn에 명시적 위젯 복원 (popup.js)
+```javascript
+if (!isScrolling && !settings.showWidget) {
+  settings.showWidget = true;
+  send('showWidget');
+  pushSettings();
+}
+```
+- **popup의 시작 버튼만** 위젯을 복원하는 유일한 경로
+- gesture 더블탭, SPA navigation, 기타 암시적 경로에서는 복원 안 함
+
+### 테스트 (134/134 통과)
+- 기존 `startScroll after quit → re-enables widget` 테스트 → `does NOT auto-enable widget` 으로 변경
+- 새 동작 검증: startScroll이 showWidget=false를 존중하는지 확인
+
+### 빌드: 1.0.3 build 8
+- App Store Connect 업로드 진행 중
+- 디바이스 설치: 잠금 해제 대기
+
+---
+
 ## 2026-04-07 (v1.0.3 build 6/7 — build 5 종합 회귀 대응 + 팀 에이전트 검증)
 
 ### 사용자 보고 (build 5 직후)

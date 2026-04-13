@@ -1337,7 +1337,7 @@ describe('quit feature', () => {
     expect(stopped).toBe(true);
   });
 
-  test('startScroll after quit → re-enables widget automatically', () => {
+  test('startScroll after quit → does NOT auto-enable widget (user intent respected)', () => {
     const { runFrame } = createRafQueue();
     const listener = loadContent();
     sendMsg(listener, 'start');
@@ -1345,14 +1345,16 @@ describe('quit feature', () => {
     sendMsg(listener, 'quit');
     expect(document.getElementById('__aws_widget__')).toBeNull();
 
-    // User clicks start again from popup
+    // startScroll (e.g. via gesture double-tap) must NOT force-enable the widget.
+    // Only the popup's explicit start button should re-enable it (popup sends
+    // showWidget=true via updateSettings before toggle).
     sendMsg(listener, 'start');
 
-    // showWidget should be auto-restored to true
+    // showWidget should stay false (no auto-restoration)
     const saved = JSON.parse(localStorage.getItem('aws_settings'));
-    expect(saved.showWidget).toBe(true);
-    // Widget should be re-created
-    expect(document.getElementById('__aws_widget__')).not.toBeNull();
+    expect(saved.showWidget).toBe(false);
+    // Widget should NOT be re-created
+    expect(document.getElementById('__aws_widget__')).toBeNull();
   });
 
   test('quit while scroll is stopped → still removes widget and saves showWidget=false', () => {

@@ -367,12 +367,12 @@
     scrollTarget       = getScrollTarget();
     // Hint to browser compositor to pre-render scroll tiles
     try { scrollTarget.style.setProperty('will-change', 'scroll-position'); } catch (_) {}
-    // After a quit, re-enable widget so user has a control surface again
-    if (!settings.showWidget) {
-      settings.showWidget = true;
-      autoSaveSettings();
-      showWidget();
-    }
+    // NOTE: we intentionally do NOT force-enable the widget here.
+    // If the user has quit (showWidget=false) and restarts via popup "start" button,
+    // the popup sends updateSettings with showWidget=true before start — so the widget
+    // appears correctly. But if startScroll is triggered by a gesture double-tap, the
+    // user did NOT intend to re-enable the widget. Forcing it on here caused the
+    // "widget resurrection on zoom/navigation" bug (v1.0.3 builds 4-7).
     // Reposition: if user starts while already at the end of the scroll, jump to the
     // opposite edge so the scroll has somewhere to go. Without this, doScroll's explicit
     // end-of-page check would immediately stop on the first frame.
@@ -504,6 +504,9 @@
       const count = tapCount;
       tapCount = 0;
       if (count === 2) {
+        // If user has quit (showWidget=false), do not toggle scroll via gesture.
+        // This prevents accidental double-tap (e.g. iOS zoom) from resurrecting the widget.
+        if (!settings.showWidget && !isScrolling) return;
         toggleScroll();
       } else if (count === 3) {
         settings.speed = 2;

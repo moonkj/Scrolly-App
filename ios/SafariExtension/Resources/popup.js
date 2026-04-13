@@ -336,6 +336,14 @@
   // ─── Event listeners ──────────────────────────────────────────────────────────
 
   toggleBtn.addEventListener('click', () => {
+    // If starting after a quit, re-enable the widget first so the user has a visible
+    // control surface. This is the ONLY path that should auto-restore the widget —
+    // gesture double-tap and other implicit paths must NOT force-enable it.
+    if (!isScrolling && !settings.showWidget) {
+      settings.showWidget = true;
+      send('showWidget');
+      pushSettings();
+    }
     send('toggle');
     isScrolling = !isScrolling;
     renderUI();
