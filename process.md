@@ -1,5 +1,39 @@
 # AutoWebScroller – 버그 수정 기록
 
+## 2026-04-14 (v1.0.4 — App Store Connect 업로드)
+
+### 버전: v1.0.4 build 1
+
+v1.0.3 build 1~8의 모든 수정사항을 통합한 안정 릴리스.
+
+### v1.0.4 포함 변경 (v1.0.3 통합)
+
+| 카테고리 | 수정 내용 | 최초 build |
+|---------|---------|-----------|
+| **버그** | 끝에서 자동 재실행 (explicit end-of-page check + stuck 감지 + 300ms grace) | build 2 |
+| **버그** | 페이지 이동 후 재실행 (pageshow bfcache 복원 시 stopScroll) | build 2 |
+| **버그** | Main.html 화면 반토막 회귀 (CSP style-src 'unsafe-inline' 추가) | build 3 |
+| **버그** | cross-domain 위젯 부활 (loadSiteSettings 비동기 콜백에서 사후 정정) | build 4→6 |
+| **버그** | 위젯 사이즈 깜빡임 (widgetCollapsed cross-domain 동기화 제거) | build 5→6 |
+| **버그** | **위젯 부활 근본 원인** (startScroll의 showWidget 강제 활성화 제거 + 더블탭 quit 방어) | build 8 |
+| **기능** | 종료(Quit) 기능 — popup ✕ 버튼 + quitScroll + 6개 언어 i18n | build 1 |
+| **기능** | Quit 버튼 UI — 54px 빨간 배경 (#FF453A), 다크/라이트 모드 | build 2 |
+| **보안** | popup.js Object.assign → SETTINGS_KEYS 화이트리스트 (프로토타입 오염 방어) | build 1 |
+| **보안** | scrollTarget 재감지 race condition 수정 (같은 프레임 scrollBy 스킵) | build 1 |
+| **코드** | 11개 magic numbers 상수화 (STUCK_FRAMES_THRESHOLD 등) | build 2 |
+| **코드** | getScrollTarget while 깊이 제한 50 | build 2 |
+| **코드** | popup 시작 버튼만 위젯 복원하는 유일한 경로 (popup.js toggleBtn) | build 8 |
+
+### 테스트
+- 134개 전부 통과
+- 커버리지: content.js 94.12% / popup.js 92.5% / background.js 94.73%
+
+### App Store Connect
+- v1.0.4 build 1 업로드 완료
+- 심사 제출 시 이 빌드 선택
+
+---
+
 ## 2026-04-07 (v1.0.3 build 8 — 미니 플로팅 위젯 부활 근본 원인 해결)
 
 ### 사용자 보고 (build 7 이후)
