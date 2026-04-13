@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Scrolly",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Automatic webpage scroller with speed control",
 
   "icons": {
