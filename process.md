@@ -1,5 +1,13 @@
 # AutoWebScroller – 버그 수정 기록
 
+## 2026-05-27 (v1.0.5 build 1 — App Store Connect 업로드)
+
+### App Store Connect
+- v1.0.5 build 1 업로드 완료 (Upload succeeded)
+- 심사 제출 시 이 빌드 선택
+
+---
+
 ## 2026-05-27 (v1.0.5 — 정주행 모드 신규 기능)
 
 ### 기능: 정주행 모드 (seriesMode)
