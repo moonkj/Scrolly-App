@@ -18,6 +18,8 @@
       loop_desc:      '끝에서 처음으로 돌아감',
       autopause_label:'자동 일시정지',
       autopause_desc: '터치 즉시 멈춤, 3초 후 재개',
+      series_label:   '정주행 모드',
+      series_desc:    '페이지 이동 시 스크롤 자동 재개',
       timer_off:      '끔',
       timer_60min:    '60분',
       min_unit:       '분',
@@ -50,6 +52,8 @@
       loop_desc:      'Returns to top at end',
       autopause_label:'Auto Pause',
       autopause_desc: 'Stops on touch, resumes after 3s',
+      series_label:   'Series Mode',
+      series_desc:    'Auto-resume scroll on next page',
       timer_off:      'Off',
       timer_60min:    '60 min',
       min_unit:       ' min',
@@ -82,6 +86,8 @@
       loop_desc:      '最後に先頭に戻る',
       autopause_label:'自動一時停止',
       autopause_desc: 'タッチで即停止、3秒後再開',
+      series_label:   'シリーズモード',
+      series_desc:    'ページ移動時にスクロールを自動再開',
       timer_off:      'オフ',
       timer_60min:    '60分',
       min_unit:       '分',
@@ -114,6 +120,8 @@
       loop_desc:      '到达末尾时返回顶部',
       autopause_label:'自动暂停',
       autopause_desc: '触摸立即停止，3秒后恢复',
+      series_label:   '连续模式',
+      series_desc:    '跳转页面时自动继续滚动',
       timer_off:      '关',
       timer_60min:    '60分钟',
       min_unit:       '分钟',
@@ -146,6 +154,8 @@
       loop_desc:      'Retour en haut à la fin',
       autopause_label:'Pause auto',
       autopause_desc: 'Arrêt tactile, reprise après 3s',
+      series_label:   'Mode série',
+      series_desc:    'Reprend le défilement à la page suivante',
       timer_off:      'Désactivé',
       timer_60min:    '60 min',
       min_unit:       ' min',
@@ -178,6 +188,8 @@
       loop_desc:      'अंत में शुरू पर वापस',
       autopause_label:'ऑटो पॉज़',
       autopause_desc: 'स्पर्श पर रुके, 3s बाद शुरू',
+      series_label:   'सीरीज़ मोड',
+      series_desc:    'अगले पेज पर स्क्रॉल स्वतः जारी रहे',
       timer_off:      'बंद',
       timer_60min:    '60 मिनट',
       min_unit:       ' मिनट',
@@ -232,6 +244,7 @@
   const showWidgetToggle   = document.getElementById('showWidgetToggle');
   const widgetOrientBtns   = document.querySelectorAll('#widgetOrientControl .seg-btn');
   const speedModeBtns      = document.querySelectorAll('#speedModeControl .seg-btn');
+  const seriesToggle        = document.getElementById('seriesToggle');
 
   // ─── Storage key ─────────────────────────────────────────────────────────────
   const SETTINGS_KEY = 'aws_settings';
@@ -240,7 +253,7 @@
   // Used wherever a settings object is merged in — prevents prototype pollution.
   const SETTINGS_KEYS = [
     'speed','speedMode','direction','loop','autoPause','timerMins',
-    'gestureShortcuts','showWidget','widgetOrientation'
+    'gestureShortcuts','showWidget','widgetOrientation','seriesMode'
   ];
 
   // ─── Local state ─────────────────────────────────────────────────────────────
@@ -254,7 +267,8 @@
     timerMins:        0,
     gestureShortcuts: true,
     showWidget:        true,
-    widgetOrientation: 'vertical'
+    widgetOrientation: 'vertical',
+    seriesMode:        false,
   };
 
   // ─── Messaging (WebExtension API) ────────────────────────────────────────────
@@ -307,6 +321,7 @@
 
     loopToggle.checked      = settings.loop;
     autoPauseToggle.checked = settings.autoPause;
+    if (seriesToggle) seriesToggle.checked = settings.seriesMode;
     gestureToggle.checked   = settings.gestureShortcuts;
     showWidgetToggle.checked = settings.showWidget;
 
@@ -381,6 +396,13 @@
     settings.autoPause = autoPauseToggle.checked;
     pushSettings();
   });
+
+  if (seriesToggle) {
+    seriesToggle.addEventListener('change', () => {
+      settings.seriesMode = seriesToggle.checked;
+      pushSettings();
+    });
+  }
 
   timerSlider.addEventListener('input', () => {
     settings.timerMins = parseInt(timerSlider.value, 10);

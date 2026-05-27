@@ -1,5 +1,39 @@
 # AutoWebScroller – 버그 수정 기록
 
+## 2026-05-27 (v1.0.5 — 정주행 모드 신규 기능)
+
+### 기능: 정주행 모드 (seriesMode)
+
+웹툰 등 연속 페이지 환경에서 URL 이동 시 스크롤이 자동 재개되는 모드.
+설정이 OFF이면 기존 동작(페이지 이동 시 정지)을 유지.
+
+#### 설계 — 두 가지 내비게이션 케이스
+
+| 케이스 | 메커니즘 | 처리 |
+|--------|---------|------|
+| SPA 이동 (pushState/replaceState/popstate) | 같은 JS 컨텍스트 | `wasScrolling` 클로저 캡처 → 300ms 후 `startScroll()` |
+| 전체 페이지 이동 (실제 URL 로드) | 새 content.js 인젝션 | `pagehide` 시 `aws_series_intent{ts}` 저장 → 새 페이지 init 시 읽어 자동 시작 (TTL 30s) |
+
+#### 변경 내용
+
+| 파일 | 변경 |
+|------|------|
+| `content.js` | `seriesMode: false` 설정 추가, `SETTINGS_KEYS` 업데이트, `SERIES_INTENT_KEY` + `SERIES_INTENT_TTL_MS` 상수 추가, `loadSiteSettings()` storage get 확장 + 자동시작 로직, `onNavigate()` 재작성 (wasScrolling 클로저), `pagehide` 핸들러에 intent 저장 |
+| `popup.js` | 6개 언어 i18n 추가, `seriesToggle` DOM ref, `seriesMode: false` 설정, `SETTINGS_KEYS` 업데이트, `renderUI()` + 이벤트 리스너 |
+| `popup.html` | Options 섹션에 정주행 모드 토글 추가 |
+| `tests/content.test.js` | `정주행 모드 (seriesMode)` describe 블록 — 13개 테스트 (SPA + pagehide + loadSiteSettings 케이스) |
+
+#### 테스트
+- 134개 → **147개** (신규 13개)
+- 전부 통과
+
+#### TM2 (Debugger) 엣지 케이스 검증
+- quit 후 navigate → `isScrolling=false`이므로 intent 미저장 ✅
+- 딜레이(300ms) 중 seriesMode=false 전환 → 클로저 재검사로 재개 차단 ✅
+- TTL 30s 만료 테스트 추가 ✅
+
+---
+
 ## 2026-04-14 (v1.0.4 — App Store Connect 업로드)
 
 ### 버전: v1.0.4 build 1

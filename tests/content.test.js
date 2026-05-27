@@ -1430,3 +1430,234 @@ describe('stuck detection — auto-stop at end of page', () => {
     expect(states[states.length - 1]).toBe(true);
   });
 });
+
+// ─── 정주행 모드 (seriesMode) ─────────────────────────────────────────────────
+// SPA 케이스: onNavigate()의 wasScrolling 클로저 → 300ms 후 자동 재개
+// 전체 페이지 케이스: pagehide → browser.storage 저장 / loadSiteSettings → 자동 시작
+
+describe('정주행 모드 (seriesMode)', () => {
+  beforeEach(() => { jest.useFakeTimers(); });
+  afterEach(() => { jest.useRealTimers(); });
+
+  // ─ SPA 내비게이션 ──────────────────────────────────────────────────────────
+
+  test('seriesMode=true + pushState: 스크롤 중이었으면 300ms 후 자동 재개', () => {
+    const listener = loadContent();
+    sendMsg(listener, 'updateSettings', { seriesMode: true });
+    sendMsg(listener, 'start');
+    browser.runtime.sendMessage.mockClear();
+
+    history.pushState({}, '', '/next-chapter');
+
+    // 즉시: 정지 상태여야 함
+    const stoppedMsg = browser.runtime.sendMessage.mock.calls.map(c => c[0])
+      .find(m => m?.name === 'stateChanged' && m.isScrolling === false);
+    expect(stoppedMsg).toBeTruthy();
+
+    browser.runtime.sendMessage.mockClear();
+    jest.advanceTimersByTime(300);
+
+    // 300ms 후: 자동 재개
+    const startedMsg = browser.runtime.sendMessage.mock.calls.map(c => c[0])
+      .find(m => m?.name === 'stateChanged' && m.isScrolling === true);
+    expect(startedMsg).toBeTruthy();
+  });
+
+  test('seriesMode=false + pushState: 자동 재개 없음 (기본 동작)', () => {
+    const listener = loadContent();
+    sendMsg(listener, 'start');
+    browser.runtime.sendMessage.mockClear();
+
+    history.pushState({}, '', '/next-page');
+    jest.advanceTimersByTime(300);
+
+    const startedMsg = browser.runtime.sendMessage.mock.calls.map(c => c[0])
+      .find(m => m?.name === 'stateChanged' && m.isScrolling === true);
+    expect(startedMsg).toBeFalsy();
+  });
+
+  test('seriesMode=true + pushState: 스크롤 정지 상태에서 이동 → 재개 없음', () => {
+    const listener = loadContent();
+    sendMsg(listener, 'updateSettings', { seriesMode: true });
+    // 스크롤 시작하지 않음
+    browser.runtime.sendMessage.mockClear();
+
+    history.pushState({}, '', '/some-page');
+    jest.advanceTimersByTime(300);
+
+    const startedMsg = browser.runtime.sendMessage.mock.calls.map(c => c[0])
+      .find(m => m?.name === 'stateChanged' && m.isScrolling === true);
+    expect(startedMsg).toBeFalsy();
+  });
+
+  test('seriesMode=true + replaceState: 스크롤 중이었으면 300ms 후 자동 재개', () => {
+    const listener = loadContent();
+    sendMsg(listener, 'updateSettings', { seriesMode: true });
+    sendMsg(listener, 'start');
+    browser.runtime.sendMessage.mockClear();
+
+    history.replaceState({}, '', '/replaced-chapter');
+    jest.advanceTimersByTime(300);
+
+    const startedMsg = browser.runtime.sendMessage.mock.calls.map(c => c[0])
+      .find(m => m?.name === 'stateChanged' && m.isScrolling === true);
+    expect(startedMsg).toBeTruthy();
+  });
+
+  test('seriesMode 딜레이(300ms) 중 seriesMode=false로 변경 → 재개 안 함', () => {
+    const listener = loadContent();
+    sendMsg(listener, 'updateSettings', { seriesMode: true });
+    sendMsg(listener, 'start');
+
+    history.pushState({}, '', '/next-page');
+
+    // 딜레이 중에 seriesMode 끄기
+    sendMsg(listener, 'updateSettings', { seriesMode: false });
+    browser.runtime.sendMessage.mockClear();
+
+    jest.advanceTimersByTime(300);
+
+    const startedMsg = browser.runtime.sendMessage.mock.calls.map(c => c[0])
+      .find(m => m?.name === 'stateChanged' && m.isScrolling === true);
+    expect(startedMsg).toBeFalsy();
+  });
+
+  // ─ pagehide — 전체 페이지 이동 인텐트 저장 ──────────────────────────────────
+
+  test('pagehide + seriesMode=true + 스크롤 중: aws_series_intent 저장', () => {
+    const listener = loadContent();
+    sendMsg(listener, 'updateSettings', { seriesMode: true });
+    sendMsg(listener, 'start');
+    browser.storage.local.set.mockClear();
+
+    window.dispatchEvent(new Event('pagehide'));
+
+    const intentCall = browser.storage.local.set.mock.calls
+      .find(c => c[0] && c[0]['aws_series_intent']);
+    expect(intentCall).toBeTruthy();
+    expect(Number.isFinite(intentCall[0]['aws_series_intent'].ts)).toBe(true);
+  });
+
+  test('pagehide + seriesMode=false + 스크롤 중: intent 저장 안 함', () => {
+    const listener = loadContent();
+    sendMsg(listener, 'start');
+    browser.storage.local.set.mockClear();
+
+    window.dispatchEvent(new Event('pagehide'));
+
+    const intentCall = browser.storage.local.set.mock.calls
+      .find(c => c[0] && c[0]['aws_series_intent']);
+    expect(intentCall).toBeFalsy();
+  });
+
+  test('pagehide + seriesMode=true + 스크롤 정지: intent 저장 안 함', () => {
+    const listener = loadContent();
+    sendMsg(listener, 'updateSettings', { seriesMode: true });
+    // 스크롤 시작 안 함
+    browser.storage.local.set.mockClear();
+
+    window.dispatchEvent(new Event('pagehide'));
+
+    const intentCall = browser.storage.local.set.mock.calls
+      .find(c => c[0] && c[0]['aws_series_intent']);
+    expect(intentCall).toBeFalsy();
+  });
+
+  test('pagehide는 seriesMode와 관계없이 항상 stopScroll 호출', () => {
+    const { runFrame } = createRafQueue();
+    const listener = loadContent();
+    sendMsg(listener, 'updateSettings', { seriesMode: true });
+    sendMsg(listener, 'start');
+    runFrame(0);
+
+    window.dispatchEvent(new Event('pagehide'));
+
+    document.documentElement.scrollBy = jest.fn();
+    runFrame(32);
+    expect(document.documentElement.scrollBy).not.toHaveBeenCalled();
+  });
+
+  // ─ loadSiteSettings — 전체 페이지 이동 후 자동 시작 ──────────────────────────
+
+  test('loadSiteSettings: seriesMode=true + 신선한 intent → 300ms 후 자동 시작', () => {
+    const freshTs = Date.now() - 1000; // 1초 전 (TTL 30s 이내)
+    browser.storage.local.get.mockReturnValue({
+      then: (cb) => {
+        cb({
+          aws_settings:      { seriesMode: true },
+          aws_series_intent: { ts: freshTs },
+        });
+        return { catch: () => {} };
+      },
+    });
+
+    loadContent();
+    browser.runtime.sendMessage.mockClear();
+    jest.advanceTimersByTime(300);
+
+    const startedMsg = browser.runtime.sendMessage.mock.calls.map(c => c[0])
+      .find(m => m?.name === 'stateChanged' && m.isScrolling === true);
+    expect(startedMsg).toBeTruthy();
+  });
+
+  test('loadSiteSettings: 만료된 intent (>30s) → 자동 시작 안 함', () => {
+    const staleTs = Date.now() - 35000; // 35초 전 (TTL 초과)
+    browser.storage.local.get.mockReturnValue({
+      then: (cb) => {
+        cb({
+          aws_settings:      { seriesMode: true },
+          aws_series_intent: { ts: staleTs },
+        });
+        return { catch: () => {} };
+      },
+    });
+
+    loadContent();
+    browser.runtime.sendMessage.mockClear();
+    jest.advanceTimersByTime(300);
+
+    const startedMsg = browser.runtime.sendMessage.mock.calls.map(c => c[0])
+      .find(m => m?.name === 'stateChanged' && m.isScrolling === true);
+    expect(startedMsg).toBeFalsy();
+  });
+
+  test('loadSiteSettings: seriesMode=false + 신선한 intent → 자동 시작 안 함', () => {
+    const freshTs = Date.now() - 1000;
+    browser.storage.local.get.mockReturnValue({
+      then: (cb) => {
+        cb({
+          aws_settings:      { seriesMode: false },
+          aws_series_intent: { ts: freshTs },
+        });
+        return { catch: () => {} };
+      },
+    });
+
+    loadContent();
+    browser.runtime.sendMessage.mockClear();
+    jest.advanceTimersByTime(300);
+
+    const startedMsg = browser.runtime.sendMessage.mock.calls.map(c => c[0])
+      .find(m => m?.name === 'stateChanged' && m.isScrolling === true);
+    expect(startedMsg).toBeFalsy();
+  });
+
+  test('loadSiteSettings: 신선한 intent → browser.storage.remove(SERIES_INTENT_KEY) 호출 (one-shot)', () => {
+    const freshTs = Date.now() - 500;
+    browser.storage.local.get.mockReturnValue({
+      then: (cb) => {
+        cb({
+          aws_settings:      { seriesMode: true },
+          aws_series_intent: { ts: freshTs },
+        });
+        return { catch: () => {} };
+      },
+    });
+
+    loadContent();
+
+    const removeCall = browser.storage.local.remove.mock.calls
+      .find(c => c[0] === 'aws_series_intent');
+    expect(removeCall).toBeTruthy();
+  });
+});

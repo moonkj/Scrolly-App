@@ -14,7 +14,8 @@
     timerMins:        0,
     gestureShortcuts: true,
     showWidget:       true,
-    widgetOrientation:'vertical'  // 'vertical' | 'horizontal'
+    widgetOrientation:'vertical', // 'vertical' | 'horizontal'
+    seriesMode:       false,      // auto-resume scroll on page navigation
   };
 
   let timerTimeout = null;
@@ -60,7 +61,7 @@
   // and avoids drift between popup/content). Used wherever a settings object is merged in.
   const SETTINGS_KEYS = [
     'speed','speedMode','direction','loop','autoPause','timerMins',
-    'gestureShortcuts','showWidget','widgetOrientation'
+    'gestureShortcuts','showWidget','widgetOrientation','seriesMode'
   ];
 
   // End-of-page stuck detection (prevents apparent "auto-restart" on infinite-scroll pages
@@ -81,6 +82,8 @@
   const SPA_REINJECT_DELAY_MS        = 300;   // delay after SPA navigation before widget re-creation
   const STUCK_VIEWPORT_PADDING_PX    = 10;    // page must exceed viewport by this margin to enable stuck detection
   const SCROLL_LOOP_EDGE_TOLERANCE   = 2;     // px tolerance for "at edge" detection
+  const SERIES_INTENT_KEY            = 'aws_series_intent'; // cross-page series mode intent
+  const SERIES_INTENT_TTL_MS         = 30000; // intent valid for 30s after page unload
 
   // ─── Wake Lock ────────────────────────────────────────────────────────────────
 
@@ -122,7 +125,7 @@
     // collapsed is stored only per-origin (localStorage above) — otherwise an accidental
     // collapse on one site would shrink the widget on every other site the user visits.
     try {
-      const p = browser.storage?.local?.get([SETTINGS_KEY, WIDGET_POS_GLOBAL_KEY]);
+      const p = browser.storage?.local?.get([SETTINGS_KEY, WIDGET_POS_GLOBAL_KEY, SERIES_INTENT_KEY]);
       if (p) p.then(result => {
         if (result?.[SETTINGS_KEY]) {
           const stored = result[SETTINGS_KEY];
@@ -142,6 +145,18 @@
         if (result?.[WIDGET_POS_GLOBAL_KEY]) {
           const raw = result[WIDGET_POS_GLOBAL_KEY];
           if (raw && Number.isFinite(raw.x) && Number.isFinite(raw.y)) cachedWidgetPos = raw;
+        }
+        // Series mode: auto-start if there is a fresh intent saved by the previous page.
+        // Intent is one-shot — clear immediately to prevent stale restarts on further navigations.
+        if (settings.seriesMode && result?.[SERIES_INTENT_KEY]) {
+          const intent = result[SERIES_INTENT_KEY];
+          if (Number.isFinite(intent?.ts) && Date.now() - intent.ts < SERIES_INTENT_TTL_MS) {
+            try {
+              const rp = browser.storage?.local?.remove(SERIES_INTENT_KEY);
+              if (rp) rp.catch(() => {});
+            } catch (_) {}
+            setTimeout(startScroll, SPA_REINJECT_DELAY_MS);
+          }
         }
         // Try to create the widget now that cachedWidgetPos is ready (no-op if already exists)
         if (!widget && settings.showWidget) showWidget();
@@ -929,7 +944,8 @@
   // ─── SPA Navigation Detection ─────────────────────────────────────────────────
 
   function onNavigate() {
-    // Stop scroll — scroll target likely changed after navigation
+    // Capture scrolling state before stopping — needed for series mode decision.
+    const wasScrolling = isScrolling;
     if (isScrolling) stopScroll();
     scrollTarget = null;
 
@@ -937,17 +953,17 @@
     // code path calls createWidget() during the delay it starts from a clean state.
     if (!document.getElementById('__aws_widget__')) { widget = null; widgetPlayBtn = null; }
 
-    // Re-inject widget after SPA finishes rendering. Re-check showWidget inside the
-    // timer because the user may have toggled it off during the 300ms delay.
-    if (settings.showWidget) {
-      setTimeout(() => {
-        if (!settings.showWidget) return; // user toggled off in the meantime
-        if (!document.getElementById('__aws_widget__')) {
-          widget = null;
-          createWidget();
-        }
-      }, SPA_REINJECT_DELAY_MS);
-    }
+    // After SPA finishes rendering: re-inject widget and optionally resume scroll.
+    // Always schedule the timeout so series mode can restart even when widget is hidden.
+    setTimeout(() => {
+      if (settings.showWidget && !document.getElementById('__aws_widget__')) {
+        widget = null;
+        createWidget();
+      }
+      // Series mode: auto-resume on SPA navigation if scroll was active when the URL changed.
+      // Re-check seriesMode inside the timer — user may have toggled it off during the delay.
+      if (wasScrolling && settings.seriesMode) startScroll();
+    }, SPA_REINJECT_DELAY_MS);
   }
 
   // Intercept history.pushState / replaceState (SPA navigation)
@@ -968,7 +984,19 @@
   // resumes alongside the newly injected IIFE's loop, doubling the effective speed
   // and making scroll impossible to stop. Calling stopScroll() on pagehide cancels
   // the RAF before the page enters bfcache, so there is no stale loop on restore.
-  window.addEventListener('pagehide', stopScroll);
+  //
+  // Series mode: save a timestamped intent to browser.storage.local so that the
+  // next page's content.js knows to auto-start scroll. Intent is one-shot (cleared
+  // on read) and expires after SERIES_INTENT_TTL_MS to prevent stale restarts.
+  window.addEventListener('pagehide', () => {
+    if (isScrolling && settings.seriesMode) {
+      try {
+        const p = browser.storage?.local?.set({ [SERIES_INTENT_KEY]: { ts: Date.now() } });
+        if (p) p.catch(() => {});
+      } catch (_) {}
+    }
+    stopScroll();
+  });
 
   // pageshow with persisted=true means the page was restored from bfcache.
   // Defensively force-stop any scroll state in case the previous IIFE somehow survived,
