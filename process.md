@@ -1,5 +1,17 @@
 # AutoWebScroller – 버그 수정 기록
 
+## 2026-05-30 (v1.0.6 build 1 — App Store Connect 업로드)
+
+### App Store Connect
+- v1.0.6 build 1 업로드 완료 (Upload succeeded)
+
+### 변경 내용
+- **버그 수정**: 정주행 모드 — 페이지 끝 도달 후 다음 페이지 이동 시 자동 재개 안 되던 문제 수정
+  - 원인: `stopScroll()` 자동 호출로 `isScrolling=false`가 된 후 navigate 이벤트 발생 → intent 미저장
+  - 수정: `seriesResumeIntent` 플래그 도입 — 페이지 끝 자동 정지 시 세팅, navigate/pagehide에서 소비
+
+---
+
 ## 2026-05-27 (v1.0.5 build 1 — App Store Connect 업로드)
 
 ### App Store Connect
