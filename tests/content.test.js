@@ -1660,4 +1660,80 @@ describe('정주행 모드 (seriesMode)', () => {
       .find(c => c[0] === 'aws_series_intent');
     expect(removeCall).toBeTruthy();
   });
+
+  // ─ 버그 수정: 페이지 끝 도달 후 navigate ────────────────────────────────────
+  // stopScroll()이 먼저 호출되어 isScrolling=false가 된 뒤에 navigate가 발생하는 케이스.
+  // seriesResumeIntent 플래그로 이를 감지해야 함.
+
+  test('seriesMode=true + 페이지 끝 도달(auto-stop) + pushState → 300ms 후 자동 재개', () => {
+    const { runFrame } = createRafQueue();
+    const listener = loadContent();
+    sendMsg(listener, 'updateSettings', { seriesMode: true });
+    sendMsg(listener, 'start');
+
+    // 페이지 끝 시뮬레이션: scrollHeight ≤ beforePos + clientHeight
+    // doScroll의 explicit end-of-page check 조건을 충족시킴
+    const scrH = document.documentElement.scrollHeight; // 5000
+    const cliH = window.innerHeight;                    // 768 (jsdom default)
+    // window.scrollY를 끝에 위치시킴
+    Object.defineProperty(window, 'scrollY', { value: scrH - cliH, configurable: true });
+
+    runFrame(0);   // startScroll → doScroll 첫 프레임
+    runFrame(400); // grace period(300ms) 지난 시점 — explicit end check 활성화
+
+    // 이 시점에서 stopScroll()이 자동 호출되어 isScrolling=false 상태
+    browser.runtime.sendMessage.mockClear();
+
+    // 다음 페이지로 SPA 이동
+    history.pushState({}, '', '/chapter-2');
+    jest.advanceTimersByTime(300);
+
+    const startedMsg = browser.runtime.sendMessage.mock.calls.map(c => c[0])
+      .find(m => m?.name === 'stateChanged' && m.isScrolling === true);
+    expect(startedMsg).toBeTruthy();
+  });
+
+  test('seriesMode=true + 페이지 끝 도달(auto-stop) + pagehide → intent 저장됨', () => {
+    const { runFrame } = createRafQueue();
+    const listener = loadContent();
+    sendMsg(listener, 'updateSettings', { seriesMode: true });
+    sendMsg(listener, 'start');
+
+    const scrH = document.documentElement.scrollHeight;
+    const cliH = window.innerHeight;
+    Object.defineProperty(window, 'scrollY', { value: scrH - cliH, configurable: true });
+
+    runFrame(0);
+    runFrame(400); // auto-stop at page end → seriesResumeIntent=true
+
+    browser.storage.local.set.mockClear();
+
+    window.dispatchEvent(new Event('pagehide'));
+
+    const intentCall = browser.storage.local.set.mock.calls
+      .find(c => c[0] && c[0]['aws_series_intent']);
+    expect(intentCall).toBeTruthy();
+  });
+
+  test('seriesMode=false + 페이지 끝 도달 + pushState → 재개 없음', () => {
+    const { runFrame } = createRafQueue();
+    const listener = loadContent();
+    sendMsg(listener, 'start');
+
+    const scrH = document.documentElement.scrollHeight;
+    const cliH = window.innerHeight;
+    Object.defineProperty(window, 'scrollY', { value: scrH - cliH, configurable: true });
+
+    runFrame(0);
+    runFrame(400);
+
+    browser.runtime.sendMessage.mockClear();
+
+    history.pushState({}, '', '/chapter-2');
+    jest.advanceTimersByTime(300);
+
+    const startedMsg = browser.runtime.sendMessage.mock.calls.map(c => c[0])
+      .find(m => m?.name === 'stateChanged' && m.isScrolling === true);
+    expect(startedMsg).toBeFalsy();
+  });
 });

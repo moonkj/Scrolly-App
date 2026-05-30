@@ -48,6 +48,11 @@
   let dragOrigLeft    = 0, dragOrigTop = 0;
   let _keepalivePort  = null;    // port to detect extension disable
 
+  // Series mode: set true when scroll stops naturally at page end (not by user action).
+  // Allows onNavigate / pagehide to resume scroll on the next page even though
+  // isScrolling is already false by the time navigation fires.
+  let seriesResumeIntent = false;
+
   // Wake Lock
   let wakeLock = null;
 
@@ -307,10 +312,12 @@
       const cliH = stRoot ? window.innerHeight : scrollTarget.clientHeight;
       const scrH = scrollTarget.scrollHeight;
       if (settings.direction === 'down' && beforePos + cliH >= scrH - SCROLL_LOOP_EDGE_TOLERANCE && scrH > cliH + STUCK_VIEWPORT_PADDING_PX) {
+        if (settings.seriesMode) seriesResumeIntent = true;
         stopScroll();
         return;
       }
       if (settings.direction === 'up' && beforePos <= SCROLL_LOOP_EDGE_TOLERANCE && scrH > cliH + STUCK_VIEWPORT_PADDING_PX) {
+        if (settings.seriesMode) seriesResumeIntent = true;
         stopScroll();
         return;
       }
@@ -346,6 +353,7 @@
         if (beforePos === lastScrollPos) {
           stuckFrames++;
           if (stuckFrames >= STUCK_FRAMES_THRESHOLD) {
+            if (settings.seriesMode) seriesResumeIntent = true;
             stopScroll();
             return;
           }
@@ -372,6 +380,7 @@
   function startScroll() {
     if (isScrolling) return;
     isScrolling        = true;
+    seriesResumeIntent = false; // consumed — clear so stale intent can't fire again
     userScrolling      = false; // clear any stale autoPause state
     lastRafTime        = null;
     spaCheckTimer      = 0;
@@ -944,14 +953,21 @@
   // ─── SPA Navigation Detection ─────────────────────────────────────────────────
 
   function onNavigate() {
-    // Capture scrolling state before stopping — needed for series mode decision.
-    const wasScrolling = isScrolling;
+    // Capture both scroll state AND the "ended at page bottom" intent before clearing.
+    // seriesResumeIntent is true when doScroll() auto-stopped at the end of the page
+    // while seriesMode was on — isScrolling is already false in that case, so we must
+    // check the flag separately.
+    const wasScrolling    = isScrolling;
+    const hadResumeIntent = seriesResumeIntent;
+    seriesResumeIntent    = false;
     if (isScrolling) stopScroll();
     scrollTarget = null;
 
     // Null the JS ref synchronously (before the 300ms timer fires) so that if another
     // code path calls createWidget() during the delay it starts from a clean state.
     if (!document.getElementById('__aws_widget__')) { widget = null; widgetPlayBtn = null; }
+
+    const shouldResume = (wasScrolling || hadResumeIntent) && settings.seriesMode;
 
     // After SPA finishes rendering: re-inject widget and optionally resume scroll.
     // Always schedule the timeout so series mode can restart even when widget is hidden.
@@ -960,9 +976,8 @@
         widget = null;
         createWidget();
       }
-      // Series mode: auto-resume on SPA navigation if scroll was active when the URL changed.
       // Re-check seriesMode inside the timer — user may have toggled it off during the delay.
-      if (wasScrolling && settings.seriesMode) startScroll();
+      if (shouldResume && settings.seriesMode) startScroll();
     }, SPA_REINJECT_DELAY_MS);
   }
 
@@ -989,12 +1004,13 @@
   // next page's content.js knows to auto-start scroll. Intent is one-shot (cleared
   // on read) and expires after SERIES_INTENT_TTL_MS to prevent stale restarts.
   window.addEventListener('pagehide', () => {
-    if (isScrolling && settings.seriesMode) {
+    if ((isScrolling || seriesResumeIntent) && settings.seriesMode) {
       try {
         const p = browser.storage?.local?.set({ [SERIES_INTENT_KEY]: { ts: Date.now() } });
         if (p) p.catch(() => {});
       } catch (_) {}
     }
+    seriesResumeIntent = false;
     stopScroll();
   });
 
