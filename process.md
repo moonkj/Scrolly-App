@@ -1,5 +1,16 @@
 # AutoWebScroller – 버그 수정 기록
 
+## 2026-06-17 (v1.0.7 build 2 — App Store Connect 업로드)
+
+### App Store Connect
+- v1.0.7 build 2 업로드 완료 (Upload succeeded)
+
+### 포함 변경
+- 앱 메인 안내 화면(Main.html) 주요 기능에 정주행 모드 추가 (6개 언어, teal 책 아이콘)
+- build 1 대비 Main.html 온보딩 갱신만 추가
+
+---
+
 ## 2026-06-17 (v1.0.7 build 1 — App Store Connect 업로드)
 
 ### App Store Connect
