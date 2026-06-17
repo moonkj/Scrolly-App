@@ -53,6 +53,11 @@
   // isScrolling is already false by the time navigation fires.
   let seriesResumeIntent = false;
 
+  // SPA navigation re-inject/resume timer. Tracked so rapid back-to-back navigations
+  // (e.g. router redirect: replaceState→pushState) don't stack multiple timers.
+  let navigateTimer   = null;
+  let pendingResume   = false;
+
   // Wake Lock
   let wakeLock = null;
 
@@ -372,6 +377,9 @@
   // Called when the scroll timer fires naturally (not user-initiated stop).
   // Resets timerMins to 0 so the popup/storage reflects "no timer" state.
   function onTimerExpired() {
+    // Timer expiry is an explicit user-intended stop — it is NOT an end-of-page event,
+    // so clear any series resume intent that a near-simultaneous end check may have set.
+    seriesResumeIntent = false;
     settings.timerMins = 0;
     autoSaveSettings();
     stopScroll();
@@ -382,6 +390,8 @@
     isScrolling        = true;
     seriesResumeIntent = false; // consumed — clear so stale intent can't fire again
     userScrolling      = false; // clear any stale autoPause state
+    clearTimeout(userScrollTimer); // drop any pending autoPause resume timer
+    userScrollTimer    = null;
     lastRafTime        = null;
     spaCheckTimer      = 0;
     scrollTargetTimer  = 0;
@@ -907,9 +917,9 @@
             const stTop  = isRoot ? window.scrollY    : st.scrollTop;
             const stCliH = isRoot ? window.innerHeight : st.clientHeight;
             const stScrH = st.scrollHeight;
-            if (settings.direction === 'up' && stTop <= 2) {
+            if (settings.direction === 'up' && stTop <= SCROLL_LOOP_EDGE_TOLERANCE) {
               isRoot ? window.scrollTo(0, stScrH) : (st.scrollTop = stScrH);
-            } else if (settings.direction === 'down' && stTop + stCliH >= stScrH - 2) {
+            } else if (settings.direction === 'down' && stTop + stCliH >= stScrH - SCROLL_LOOP_EDGE_TOLERANCE) {
               isRoot ? window.scrollTo(0, 0) : (st.scrollTop = 0);
             }
           }
@@ -967,17 +977,22 @@
     // code path calls createWidget() during the delay it starts from a clean state.
     if (!document.getElementById('__aws_widget__')) { widget = null; widgetPlayBtn = null; }
 
-    const shouldResume = (wasScrolling || hadResumeIntent) && settings.seriesMode;
+    // Accumulate resume intent: a rapid second navigation must not erase the first
+    // navigation's intent (its stopScroll already set isScrolling=false).
+    if ((wasScrolling || hadResumeIntent) && settings.seriesMode) pendingResume = true;
 
-    // After SPA finishes rendering: re-inject widget and optionally resume scroll.
-    // Always schedule the timeout so series mode can restart even when widget is hidden.
-    setTimeout(() => {
+    // Coalesce rapid navigations into a single re-inject/resume timer.
+    clearTimeout(navigateTimer);
+    navigateTimer = setTimeout(() => {
+      navigateTimer = null;
+      const doResume = pendingResume;
+      pendingResume  = false;
       if (settings.showWidget && !document.getElementById('__aws_widget__')) {
         widget = null;
         createWidget();
       }
       // Re-check seriesMode inside the timer — user may have toggled it off during the delay.
-      if (shouldResume && settings.seriesMode) startScroll();
+      if (doResume && settings.seriesMode) startScroll();
     }, SPA_REINJECT_DELAY_MS);
   }
 
@@ -1019,6 +1034,10 @@
   // and clear stuck-detection state to prevent immediate auto-stop on resume.
   window.addEventListener('pageshow', (e) => {
     if (e.persisted) {
+      // bfcache restore may revive a stale resume intent from the frozen heap —
+      // clear it so the back/forward target page doesn't auto-resume unexpectedly.
+      seriesResumeIntent = false;
+      pendingResume      = false;
       stopScroll();
       lastScrollPos = -1;
       stuckFrames   = 0;

@@ -22,8 +22,11 @@ const POPUP_DOM = `
     <button class="seg-btn"        data-value="up">↑ 위</button>
   </div>
 
+  <button id="quitBtn" class="quit-btn" title="종료"><span>✕</span></button>
+
   <input type="checkbox" id="loopToggle">
   <input type="checkbox" id="autoPauseToggle" checked>
+  <input type="checkbox" id="seriesToggle">
   <input type="checkbox" id="gestureToggle"   checked>
   <input type="checkbox" id="showWidgetToggle" checked>
 
@@ -33,6 +36,11 @@ const POPUP_DOM = `
   <div id="widgetOrientControl">
     <button class="seg-btn active" data-value="vertical">세로</button>
     <button class="seg-btn"        data-value="horizontal">가로</button>
+  </div>
+
+  <div id="speedModeControl">
+    <button class="seg-btn active" data-value="curve">곡선</button>
+    <button class="seg-btn"        data-value="linear">선형</button>
   </div>
 `;
 
@@ -257,6 +265,72 @@ describe('loopToggle change', () => {
       1,
       expect.objectContaining({ name: 'updateSettings', message: expect.objectContaining({ loop: true }) })
     );
+  });
+});
+
+// ─── 정주행 모드 (seriesToggle) — TM3 T5 누락 보강 ────────────────────────────
+
+describe('seriesToggle change', () => {
+  test('checking sends updateSettings with seriesMode=true', async () => {
+    loadPopup();
+    const toggle = document.getElementById('seriesToggle');
+    toggle.checked = true;
+    toggle.dispatchEvent(new Event('change'));
+    await Promise.resolve();
+    expect(browser.tabs.sendMessage).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({ name: 'updateSettings', message: expect.objectContaining({ seriesMode: true }) })
+    );
+  });
+
+  test('applyState with seriesMode=true → seriesToggle.checked=true', () => {
+    const listener = loadPopup();
+    listener({ name: 'stateChanged', isScrolling: false, settings: { seriesMode: true } });
+    expect(document.getElementById('seriesToggle').checked).toBe(true);
+  });
+});
+
+// ─── 종료 버튼 (quitBtn) — TM3 T7 누락 보강 ──────────────────────────────────
+
+describe('quitBtn click', () => {
+  test('sends "quit" message to content tab', async () => {
+    loadPopup();
+    document.getElementById('quitBtn').click();
+    await Promise.resolve();
+    expect(browser.tabs.sendMessage).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({ name: 'quit' })
+    );
+  });
+
+  test('quit sets stopped state in UI', () => {
+    loadPopup();
+    document.getElementById('quitBtn').click();
+    expect(document.getElementById('toggleBtn').className).toContain('stopped');
+  });
+});
+
+// ─── 속도 곡선 (speedModeControl) — TM3 T6 누락 보강 ─────────────────────────
+
+describe('speedModeControl', () => {
+  test('clicking linear sends updateSettings with speedMode:"linear"', async () => {
+    loadPopup();
+    const lBtn = Array.from(document.querySelectorAll('#speedModeControl .seg-btn'))
+      .find(b => b.dataset.value === 'linear');
+    lBtn.click();
+    await Promise.resolve();
+    expect(browser.tabs.sendMessage).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({ name: 'updateSettings', message: expect.objectContaining({ speedMode: 'linear' }) })
+    );
+  });
+
+  test('applyState with speedMode:"linear" → linear btn active', () => {
+    const listener = loadPopup();
+    listener({ name: 'stateChanged', isScrolling: false, settings: { speedMode: 'linear' } });
+    const lBtn = Array.from(document.querySelectorAll('#speedModeControl .seg-btn'))
+      .find(b => b.dataset.value === 'linear');
+    expect(lBtn.classList.contains('active')).toBe(true);
   });
 });
 

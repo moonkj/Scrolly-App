@@ -45,6 +45,7 @@ content.js
 | `toggle` | popup→content | 스크롤 시작/정지 토글 |
 | `start` | popup→content | 강제 시작 |
 | `stop` | popup→content | 강제 정지 |
+| `quit` | popup→content | 스크롤 정지 + 위젯 DOM 제거 + `showWidget=false` 저장 |
 | `updateSettings` | popup→content | 설정 객체 전달 + 자동 저장 |
 | `showWidget` | popup→content | 플로팅 위젯 표시 |
 | `hideWidget` | popup→content | 플로팅 위젯 숨김 |
@@ -53,11 +54,15 @@ content.js
 ## 스토리지
 
 content.js 의 localStorage 는 **대상 페이지의 origin**에 저장된다.
+`browser.storage.local` 은 **확장 전역**(cross-domain) 저장소로, 도메인 이동 후에도 유지된다.
 
-| 키 | 내용 |
-|----|------|
-| `aws_settings` | 전역 스크롤 설정 JSON (사이트 구분 없음) |
-| `aws_widget_pos_<hostname>` | 플로팅 위젯 위치 `{x, y}` JSON |
+| 키 | 저장소 | 내용 |
+|----|--------|------|
+| `aws_settings` | localStorage + extension | 전역 스크롤 설정 JSON (사이트 구분 없음) |
+| `aws_widget_pos_<hostname>` | localStorage | 플로팅 위젯 위치 `{x, y}` (origin별) |
+| `aws_widget_pos` | extension | 위젯 전역 위치 `{x, y}` (cross-domain 복원용) |
+| `aws_widget_collapsed` | localStorage | 위젯 접힘 상태 `'1'|'0'` (origin별, cross-domain 미동기화) |
+| `aws_series_intent` | extension | 정주행 재개 인텐트 `{ts}` (one-shot, 30초 TTL) |
 
 설정은 `updateSettings` 수신 시 **자동 저장**, 페이지 로드 시 **자동 불러오기**.
 
@@ -70,19 +75,26 @@ content.js 의 localStorage 는 **대상 페이지의 origin**에 저장된다.
   - 버튼/input 제외한 위젯 영역에서 드래그 시작: `!e.target.closest('button, input')`
 - 제스처 콜백은 `setTimeout` 내에서 실행 → 이 시점의 `preventDefault` 는 무효
 - 더블탭 줌: 현대 페이지는 viewport meta로 비활성화되어 있어 충돌 없음
+- **bfcache**: `pagehide` 에서 RAF 취소 필수 (복원 시 이전 IIFE의 RAF 중복 실행 방지), `pageshow(persisted=true)` 시 스크롤 상태 + `seriesResumeIntent` 초기화
+- **정주행 모드(seriesMode)**: 두 가지 이동 케이스 분리
+  - SPA 이동(pushState/replaceState/popstate): `onNavigate()` 에서 `wasScrolling`/`seriesResumeIntent` 캡처 → 300ms 후 `startScroll()`. 연속 navigate는 `navigateTimer` 로 1개로 합침
+  - 전체 페이지 이동: `pagehide` 에서 `aws_series_intent{ts}` 저장 → 새 페이지 `loadSiteSettings()` 가 읽어 자동 시작 (one-shot, 30초 TTL)
+  - `seriesResumeIntent`: 페이지 끝 자동 정지 시에만 set. 타이머 만료/bfcache 복원에서는 명시적으로 clear
 
 ## settings 객체 스키마
 
 ```js
 {
   speed:             3,          // 1-20 (배속), 기본값 3
+  speedMode:         'curve',    // 'curve' (s²×9 px/s) | 'linear' (s×20 px/s)
   direction:         'down',     // 'down' | 'up'
   loop:              false,      // 끝에서 처음으로 복귀
   autoPause:         true,       // 터치 감지 시 일시정지 (3초 후 재개)
   timerMins:         0,          // 0=끔, 5~60분 (5분 단위)
-  gestureShortcuts:  true,       // 더블탭: 토글, 트리플탭: 속도 2x 초기화
+  gestureShortcuts:  true,       // 더블탭: 토글, 트리플탭: 속도 2로 리셋
   showWidget:        true,       // 플로팅 위젯 표시
-  widgetOrientation: 'vertical'  // 'vertical' | 'horizontal'
+  widgetOrientation: 'vertical', // 'vertical' | 'horizontal'
+  seriesMode:        false       // 정주행: 페이지 이동 시 스크롤 자동 재개
 }
 ```
 
@@ -186,3 +198,8 @@ npm test   # 전체 테스트 통과
 |------|----------|
 | 1.0.0 | 초기 릴리스: 속도/방향/루프/타이머/자동일시정지 |
 | 1.0.1 | 위젯 가로/세로 방향 전환, 다국어(6개), 위젯 드래그 개선, SafariExtensionApp 분리 |
+| 1.0.2 | 속도 곡선 모드(speedMode: curve/linear) 추가, 스크롤 속도 버그 수정 |
+| 1.0.3 | 종료(Quit) 버튼, 명시적 end-of-page 체크, 위젯 부활 버그 수정 |
+| 1.0.4 | v1.0.3 빌드 통합 안정 릴리스 |
+| 1.0.5 | 정주행 모드(seriesMode) 추가 — 페이지 이동 시 스크롤 자동 재개 |
+| 1.0.6 | 정주행 모드 버그 수정 (페이지 끝 도달 후 다음 페이지 자동 재개) + 코드 리뷰 라운드 (D1~D3, C2, 테스트 보강) |

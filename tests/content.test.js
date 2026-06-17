@@ -1736,4 +1736,75 @@ describe('정주행 모드 (seriesMode)', () => {
       .find(m => m?.name === 'stateChanged' && m.isScrolling === true);
     expect(startedMsg).toBeFalsy();
   });
+
+  // ─ 코드 리뷰 버그 수정 (TM2 Debugger) ──────────────────────────────────────
+
+  // D1: 타이머 만료로 멈춘 스크롤은 seriesMode여도 다음 페이지에서 재개되면 안 됨.
+  test('D1: timerMins 만료로 정지 + seriesMode=true + pushState → 자동 재개 없음', () => {
+    // createRafQueue로 RAF를 수동 통제 — fake-timer가 polyfill한 RAF가 누수된
+    // window.scrollY를 읽고 페이지 끝 판정하는 순서 의존성을 차단한다.
+    const { runFrame } = createRafQueue();
+    const listener = loadContent();
+    // 페이지 중간에 위치 → doScroll이 end-of-page로 멈추지 않게 (intent 미세팅)
+    Object.defineProperty(window, 'scrollY', { value: 100, configurable: true });
+    sendMsg(listener, 'updateSettings', { seriesMode: true, timerMins: 1 });
+    sendMsg(listener, 'start');
+    runFrame(0); runFrame(16); // 스크롤 정상 진행 (끝 아님)
+
+    // 타이머 만료 → onTimerExpired → seriesResumeIntent=false → stopScroll
+    jest.advanceTimersByTime(60_000);
+    browser.runtime.sendMessage.mockClear();
+
+    history.pushState({}, '', '/next-page');
+    jest.advanceTimersByTime(300);
+
+    const startedMsg = browser.runtime.sendMessage.mock.calls.map(c => c[0])
+      .find(m => m?.name === 'stateChanged' && m.isScrolling === true);
+    expect(startedMsg).toBeFalsy();
+  });
+
+  // D2: 300ms 내 연속 navigate가 와도 타이머는 1개로 합쳐지고 resume 의도는 보존됨.
+  test('D2: seriesMode=true + 고속 연속 pushState(2회) → startScroll 1회만', () => {
+    const listener = loadContent();
+    sendMsg(listener, 'updateSettings', { seriesMode: true });
+    sendMsg(listener, 'start');
+
+    history.pushState({}, '', '/redirect');   // 1차: wasScrolling=true → pendingResume=true
+    jest.advanceTimersByTime(150);
+    history.pushState({}, '', '/chapter-2');  // 2차: 1차 타이머 취소, 의도 보존
+    browser.runtime.sendMessage.mockClear();
+
+    jest.advanceTimersByTime(300);
+
+    const startMsgs = browser.runtime.sendMessage.mock.calls.map(c => c[0])
+      .filter(m => m?.name === 'stateChanged' && m.isScrolling === true);
+    expect(startMsgs.length).toBe(1); // 합쳐진 단일 타이머로 1회만 재개
+  });
+
+  // D3: bfcache 복원(pageshow persisted) 시 stale resume intent 제거.
+  test('D3: 페이지 끝 도달(intent set) 후 pageshow persisted=true + pushState → 재개 없음', () => {
+    const { runFrame } = createRafQueue();
+    const listener = loadContent();
+    sendMsg(listener, 'updateSettings', { seriesMode: true });
+    sendMsg(listener, 'start');
+
+    const scrH = document.documentElement.scrollHeight;
+    const cliH = window.innerHeight;
+    Object.defineProperty(window, 'scrollY', { value: scrH - cliH, configurable: true });
+    runFrame(0);
+    runFrame(400); // 페이지 끝 auto-stop → seriesResumeIntent=true
+
+    // bfcache 복원
+    const evt = new Event('pageshow');
+    Object.defineProperty(evt, 'persisted', { value: true });
+    window.dispatchEvent(evt);
+
+    browser.runtime.sendMessage.mockClear();
+    history.pushState({}, '', '/back-target');
+    jest.advanceTimersByTime(300);
+
+    const startedMsg = browser.runtime.sendMessage.mock.calls.map(c => c[0])
+      .find(m => m?.name === 'stateChanged' && m.isScrolling === true);
+    expect(startedMsg).toBeFalsy();
+  });
 });

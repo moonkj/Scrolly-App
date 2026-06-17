@@ -1,5 +1,38 @@
 # AutoWebScroller – 버그 수정 기록
 
+## 2026-06-17 (v1.0.6 — 팀 에이전트 전체 코드 리뷰 라운드)
+
+### 4팀원 병렬 리뷰 (Tmux + 과학적 토론)
+
+TM1(Coder)·TM2(Debugger)·TM3(Tester+Reviewer)·TM4(Perf+Doc)가 전체 코드베이스를 병렬 리뷰.
+즉시 수정 7종 반영, 테스트 150 → **159개 전부 통과**.
+
+#### 즉시 수정 완료
+
+| ID | 발견자 | 문제 | 수정 |
+|----|--------|------|------|
+| D1 | TM2 | 타이머 만료로 멈춘 스크롤이 다음 페이지에서 부활 | `onTimerExpired`에 `seriesResumeIntent=false` |
+| D2 | TM2 | 300ms 내 연속 navigate 시 setTimeout 누적 | `navigateTimer` clearTimeout + `pendingResume` 누적 |
+| D3 | TM2 | bfcache 복원 시 stale intent 잔존 | `pageshow(persisted)`에 intent 클리어 |
+| D5 | TM2 | `startScroll` stale autoPause 타이머 미정리 | `clearTimeout(userScrollTimer)` |
+| C2 | TM1 | 매직넘버 `2` 하드코딩 (L910/912) | `SCROLL_LOOP_EDGE_TOLERANCE` |
+| T5 | TM3 | popup.test fixture에 seriesToggle/quitBtn/speedMode 누락 (커버리지 0) | fixture 보강 + 테스트 6개 |
+| Doc1~6 | TM4 | CLAUDE.md settings/메시지/storage/버전/bfcache 누락 | 전체 갱신 |
+
+#### 과학적 토론 결론
+- **토론1**: TM2 D1 ↔ TM3 T2 = 같은 문제의 양면 → `seriesResumeIntent`를 "페이지 끝 자동정지"에만 한정
+- **토론3**: D1 테스트가 전체 실행 시만 실패 → fake-timer RAF가 누수된 `window.scrollY`를 읽는 순서 의존성. `createRafQueue` + scrollY 명시로 결정론화
+
+#### 보류 (1.1.0 백로그)
+C4/C8(헬퍼 추출), C5/C6/R7/R8(함수 분리), D4/D6~D9(엣지), P1~P3(성능), T1~T3(조합 테스트)
+
+#### 테스트
+- content.test.js: 정주행 D1~D3 회귀 3개 추가
+- popup.test.js: seriesToggle 2 + quitBtn 2 + speedMode 2 추가
+- 합계 150 → **159개 전부 통과**
+
+---
+
 ## 2026-05-30 (v1.0.6 build 1 — App Store Connect 업로드)
 
 ### App Store Connect
