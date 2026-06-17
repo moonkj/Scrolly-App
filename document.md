@@ -1,6 +1,6 @@
 # Scrolly — App Store 출시 문서
 
-> 작성 기준: v1.3 (2026-02-25)
+> 작성 기준: v1.0.6 (2026-06-17)
 
 ---
 
@@ -97,6 +97,7 @@ Scrolly는 Safari용 자동 스크롤 확장 프로그램입니다.
 
 🚀 속도 조절 (1x ~ 20x)
   느린 정독부터 빠른 훑어보기까지, 슬라이더로 자유롭게 조절.
+  곡선/선형 속도 모드로 가속 느낌까지 선택.
 
 🧭 방향 선택
   위 ↑ / 아래 ↓ 어느 방향이든 원하는 대로.
@@ -104,6 +105,11 @@ Scrolly는 Safari용 자동 스크롤 확장 프로그램입니다.
 🔁 루프 모드
   페이지 끝에 도달하면 자동으로 처음으로 돌아갑니다.
   전광판, 대본, 긴 문서 반복 열람에 최적.
+
+📖 정주행 모드
+  웹툰 다음 화로 넘어가도 스크롤이 끊기지 않습니다.
+  페이지를 이동하면 자동으로 스크롤을 이어서 재개해
+  웹툰·웹소설 정주행에 딱.
 
 ⏸ 자동 일시정지
   손가락이 화면에 닿으면 즉시 멈추고, 3초 후 자동 재개.
@@ -122,6 +128,7 @@ Scrolly는 Safari용 자동 스크롤 확장 프로그램입니다.
   페이지 위에 떠 있는 미니 컨트롤러.
   어디서든 드래그해서 원하는 위치에 고정,
   재생/정지 버튼과 속도 슬라이더를 바로 사용.
+  세로·가로 방향 전환 지원.
 
 💡 화면 켜짐 유지
   스크롤이 실행되는 동안 화면이 자동으로 꺼지지 않습니다.
@@ -169,6 +176,7 @@ Scrolly smoothly scrolls any webpage in Safari — automatically.
 
 * Adjustable Speed (1x – 20x)
   - Slow read or quick skim — drag the slider to your perfect pace.
+  - Curve or linear speed mode for the acceleration feel you prefer.
 
 * Direction Control
   - Scroll down ↓ or up ↑, whichever you need.
@@ -176,6 +184,11 @@ Scrolly smoothly scrolls any webpage in Safari — automatically.
 * Loop Mode
   - Reaches the bottom? Jumps right back to the top.
   - Perfect for banners, scripts, or continuous reading.
+
+* Series Mode
+  - Scrolling keeps going when you move to the next page.
+  - Auto-resumes after navigation — perfect for binge-reading
+    webtoons, web novels, or multi-page articles.
 
 * Auto-Pause
   - Touching the screen pauses scrolling instantly.
@@ -194,6 +207,7 @@ Scrolly smoothly scrolls any webpage in Safari — automatically.
 * Floating Widget
   - A draggable mini-controller that stays on top of the page.
   - Drag it anywhere — play/stop button and speed slider always handy.
+  - Switch between vertical and horizontal layouts.
 
 * Keep Screen Awake
   - Screen stays on while scrolling. No more tapping just to keep
@@ -210,6 +224,7 @@ Scrolly smoothly scrolls any webpage in Safari — automatically.
 
 * PERFECT FOR 
   - Reading long articles or blogs hands-free
+  - Binge-reading webtoons or web novels across pages
   - Following recipes while cooking
   - Keeping up with workout or stretching guides
   - Auto-advancing sheet music, scripts, or e-books
@@ -232,6 +247,7 @@ Safari のどんなウェブページも Scrolly が自動的にスクロール�
 
 * スピード調整（1x〜20x）
   ゆっくり精読から素早いスキャンまで、スライダーで自由に調整。
+  カーブ / リニアの速度モードで加速感も選べます。
 
 * スクロール方向
   下↓ でも上↑ でも、好きな方向へ。
@@ -239,6 +255,11 @@ Safari のどんなウェブページも Scrolly が自動的にスクロール�
 * ループモード
   一番下に到達したら自動的に先頭に戻ります。
   バナー、台本、長い文書の繰り返し閲覧に最適。
+
+* シリーズモード
+  次のページに移動してもスクロールが途切れません。
+  ページ遷移後に自動で再開 — ウェブトゥーンや
+  ウェブ小説の一気読みに最適。
 
 * 自動一時停止
   画面に触れると即座に停止。3秒後に自動再開。
@@ -256,6 +277,7 @@ Safari のどんなウェブページも Scrolly が自動的にスクロール�
 * フローティングウィジェット
   ページ上に浮かぶドラッグ可能なミニコントローラー。
   どこにでも移動可能 — 再生/停止ボタンとスピードスライダーをいつでも手元に。
+  縦 / 横のレイアウト切り替えに対応。
 
 * 画面点灯維持
   スクロール中は画面が自動的にオフになりません。
@@ -272,6 +294,7 @@ Safari のどんなウェブページも Scrolly が自動的にスクロール�
 
 * こんな方におすすめ
   - 長い記事やブログをハンズフリーで読みたい方
+  - ウェブトゥーンやウェブ小説をページをまたいで一気読みしたい方
   - 料理中にレシピを手を使わず確認したい方
   - ワークアウトやストレッチ中にガイドを追いたい方
   - 楽譜、台本、電子書籍を自動送りしたい方
@@ -294,6 +317,7 @@ Scrolly 都能自动滚动 Safari 中的任何网页。
 
 * 速度调节（1x ~ 20x）
   慢速精读到快速浏览，拖动滑块随意调节。
+  曲线 / 线性速度模式，自由选择加速手感。
 
 * 方向控制
   向下↓ 或向上↑，随您所愿。
@@ -301,6 +325,11 @@ Scrolly 都能自动滚动 Safari 中的任何网页。
 * 循环模式
   滚动到底部后自动返回顶部。
   适合公告栏、台词、长文档的循环查看。
+
+* 连续模式
+  跳转到下一页时滚动不会中断。
+  翻页后自动继续 — 适合一口气追看漫画、
+  网络小说或多页文章。
 
 * 自动暂停
   触摸屏幕立即暂停，3秒后自动恢复。
@@ -318,6 +347,7 @@ Scrolly 都能自动滚动 Safari 中的任何网页。
 * 浮动小组件
   悬浮于页面上方的可拖动迷你控制器。
   可拖动到任意位置——播放/停止按钮和速度滑块随时可用。
+  支持竖向 / 横向布局切换。
 
 * 保持屏幕常亮
   滚动期间屏幕不会自动关闭。
@@ -334,6 +364,7 @@ Scrolly 都能自动滚动 Safari 中的任何网页。
 
 * 适合人群
   - 想要解放双手阅读长篇文章或博客的用户
+  - 想跨页一口气追看漫画或网络小说的用户
   - 烹饪时想免手查看食谱的用户
   - 运动或拉伸时想跟随指南的用户
   - 想要自动翻页查看乐谱、台词或电子书的用户
@@ -356,6 +387,7 @@ Scrolly fait défiler automatiquement n'importe quelle page web dans Safari.
 
 * Vitesse réglable (1x – 20x)
   Lecture lente ou survol rapide — faites glisser le curseur à votre rythme idéal.
+  Mode de vitesse courbe ou linéaire selon la sensation d'accélération souhaitée.
 
 * Contrôle de direction
   Faites défiler vers le bas ↓ ou vers le haut ↑, selon vos besoins.
@@ -363,6 +395,11 @@ Scrolly fait défiler automatiquement n'importe quelle page web dans Safari.
 * Mode boucle
   Arrivé en bas ? Retour automatique en haut.
   Parfait pour les bannières, les scripts ou la lecture en continu.
+
+* Mode série
+  Le défilement continue lorsque vous passez à la page suivante.
+  Reprise automatique après navigation — idéal pour dévorer des
+  webtoons, des romans web ou des articles multi-pages.
 
 * Pause automatique
   Toucher l'écran met le défilement en pause instantanément.
@@ -381,6 +418,7 @@ Scrolly fait défiler automatiquement n'importe quelle page web dans Safari.
 * Widget flottant
   Un mini-contrôleur déplaçable qui reste au-dessus de la page.
   Faites-le glisser n'importe où — bouton lecture/pause et curseur de vitesse toujours à portée.
+  Basculez entre disposition verticale et horizontale.
 
 * Écran toujours allumé
   L'écran reste allumé pendant le défilement.
@@ -397,6 +435,7 @@ Scrolly fait défiler automatiquement n'importe quelle page web dans Safari.
 
 * PARFAIT POUR
   - Lire de longs articles ou des blogs les mains libres
+  - Dévorer des webtoons ou des romans web au fil des pages
   - Consulter des recettes en cuisinant
   - Suivre des guides d'entraînement ou d'étirement
   - Avancer automatiquement dans les partitions, scripts ou e-books
@@ -419,6 +458,7 @@ Scrolly desplaza automáticamente cualquier página web en Safari.
 
 * Velocidad ajustable (1x – 20x)
   Lectura lenta o vista rápida — arrastra el control deslizante a tu ritmo ideal.
+  Modo de velocidad en curva o lineal según la sensación de aceleración que prefieras.
 
 * Control de dirección
   Desplazamiento hacia abajo ↓ o hacia arriba ↑, como prefieras.
@@ -426,6 +466,11 @@ Scrolly desplaza automáticamente cualquier página web en Safari.
 * Modo bucle
   ¿Llegó al final? Vuelve automáticamente al principio.
   Perfecto para banners, guiones o lectura continua.
+
+* Modo serie
+  El desplazamiento continúa al pasar a la página siguiente.
+  Se reanuda automáticamente tras la navegación — ideal para
+  maratones de webtoons, novelas web o artículos de varias páginas.
 
 * Pausa automática
   Tocar la pantalla pausa el desplazamiento al instante.
@@ -444,6 +489,7 @@ Scrolly desplaza automáticamente cualquier página web en Safari.
 * Widget flotante
   Un mini-controlador arrastrable que permanece sobre la página.
   Arrástralo donde quieras — botón de reproducción/pausa y control de velocidad siempre a mano.
+  Cambia entre disposición vertical y horizontal.
 
 * Pantalla siempre encendida
   La pantalla permanece encendida mientras se desplaza.
@@ -460,6 +506,7 @@ Scrolly desplaza automáticamente cualquier página web en Safari.
 
 * PERFECTO PARA
   - Leer artículos largos o blogs con las manos libres
+  - Maratones de webtoons o novelas web a través de las páginas
   - Ver recetas mientras cocinas
   - Seguir guías de entrenamiento o estiramientos
   - Avanzar automáticamente en partituras, guiones o e-books
@@ -482,6 +529,7 @@ Scrolly Safari में किसी भी वेबपेज को अपन
 
 * गति समायोजन (1x – 20x)
   धीमी पठन से लेकर तेज़ स्कैनिंग तक — स्लाइडर को अपनी पसंदीदा गति पर खींचें।
+  कर्व / लीनियर स्पीड मोड — मनचाहा एक्सेलेरेशन अनुभव चुनें।
 
 * दिशा नियंत्रण
   नीचे↓ या ऊपर↑ — जो चाहें।
@@ -489,6 +537,11 @@ Scrolly Safari में किसी भी वेबपेज को अपन
 * लूप मोड
   नीचे पहुंच गए? अपने आप ऊपर वापस आ जाता है।
   बैनर, स्क्रिप्ट या निरंतर पठन के लिए उपयुक्त।
+
+* सीरीज़ मोड
+  अगले पेज पर जाने पर भी स्क्रॉलिंग जारी रहती है।
+  नेविगेशन के बाद अपने आप फिर शुरू — वेबटून, वेब नॉवेल
+  या मल्टी-पेज लेख एक साथ पढ़ने के लिए उपयुक्त।
 
 * ऑटो-पॉज़
   स्क्रीन छूने पर स्क्रॉलिंग तुरंत रुक जाती है।
@@ -507,6 +560,7 @@ Scrolly Safari में किसी भी वेबपेज को अपन
 * फ्लोटिंग विजेट
   पेज के ऊपर तैरता हुआ ड्रैग करने योग्य मिनी-कंट्रोलर।
   कहीं भी खींचें — प्ले/स्टॉप बटन और स्पीड स्लाइडर हमेशा हाथ में।
+  वर्टिकल / हॉरिज़ॉन्टल लेआउट स्विच करें।
 
 * स्क्रीन जागृत रखें
   स्क्रॉलिंग के दौरान स्क्रीन अपने आप बंद नहीं होती।
@@ -523,6 +577,7 @@ Scrolly Safari में किसी भी वेबपेज को अपन
 
 * इनके लिए एकदम सही
   - लंबे लेख या ब्लॉग हाथों-मुक्त पढ़ना
+  - पेज-दर-पेज वेबटून या वेब नॉवेल एक साथ पढ़ना
   - खाना पकाते समय रेसिपी देखना
   - वर्कआउट या स्ट्रेचिंग गाइड का पालन करना
   - शीट म्यूज़िक, स्क्रिप्ट या ई-बुक अपने आप आगे बढ़ाना
@@ -535,10 +590,10 @@ Scrolly Safari में किसी भी वेबपेज को अपन
 
 ```
 Ko:
-자동스크롤,스크롤,사파리확장,오토스크롤,손자유,독서,레시피,Safari
+자동스크롤,스크롤,웹툰,정주행,사파리확장,오토스크롤,손자유,독서,웹소설
 
 En:
-auto scroll,autoscroll,safari extension,hands free,reader,auto read
+auto scroll,webtoon,binge read,safari extension,hands free,reader,web novel
 ```
 
 > 팁: 앱 이름·부제목에 이미 포함된 단어는 키워드에서 제외 (중복 불이익)
@@ -547,7 +602,72 @@ auto scroll,autoscroll,safari extension,hands free,reader,auto read
 
 ## 6. 버전 업데이트 내역 (What's New)
 
-### v1.3 (현재)
+### v1.0.6 (현재)
+```
+Ko:
+• 정주행 모드 버그 수정 — 페이지 끝까지 본 뒤 다음 화로
+  넘어가도 스크롤이 자동으로 이어집니다.
+• 안정성 개선 및 내부 코드 정리
+
+En:
+• Series Mode fix — scrolling now auto-resumes on the next page
+  even after you reach the end of the current page.
+• Stability improvements and internal cleanup
+
+Ja:
+• シリーズモードの修正 — ページの最後まで読んでから次の
+  ページに移動してもスクロールが自動的に続きます。
+• 安定性の改善
+
+Zh:
+• 连续模式修复 — 即使读到页面底部，跳转下一页后滚动也会
+  自动继续。
+• 稳定性改进
+
+Fr:
+• Correction du mode série — le défilement reprend désormais
+  automatiquement à la page suivante même après la fin de page.
+• Améliorations de stabilité
+
+Hi:
+• सीरीज़ मोड फिक्स — पेज के अंत तक पहुंचने के बाद भी अगले
+  पेज पर स्क्रॉलिंग अपने आप जारी रहती है।
+• स्थिरता में सुधार
+```
+
+### v1.0.5
+```
+Ko:
+• 정주행 모드 추가 — 웹툰·웹소설 다음 화로 넘어가도
+  스크롤이 자동으로 이어집니다.
+• 속도 곡선 모드 (곡선/선형) 추가
+
+En:
+• Series Mode added — scrolling continues automatically when you
+  move to the next page (e.g. webtoon chapters).
+• Speed curve mode (curve / linear) added
+
+Ja:
+• シリーズモード追加 — ウェブトゥーンなどで次のページに
+  移動してもスクロールが自動的に続きます。
+• 速度カーブモード（カーブ / リニア）追加
+
+Zh:
+• 新增连续模式 — 跳转下一页（如漫画下一话）时自动继续滚动。
+• 新增速度曲线模式（曲线 / 线性）
+
+Fr:
+• Mode série ajouté — le défilement continue automatiquement
+  au passage à la page suivante (chapitres de webtoon, etc.).
+• Mode de courbe de vitesse (courbe / linéaire) ajouté
+
+Hi:
+• सीरीज़ मोड जोड़ा गया — अगले पेज (जैसे वेबटून अध्याय) पर
+  जाने पर स्क्रॉलिंग अपने आप जारी रहती है।
+• स्पीड कर्व मोड (कर्व / लीनियर) जोड़ा गया
+```
+
+### v1.3
 ```
 Ko:
 • 스크롤 중 화면 자동 꺼짐 방지 (Wake Lock)
@@ -609,6 +729,7 @@ En: Initial release — speed, direction, loop, timer, auto-pause
 | 3 | **터치해도 괜찮아** — 손대면 즉시 멈추고 3초 후 재개 | **Touch-safe** — pauses on contact, resumes after 3s |
 | 4 | **플로팅 위젯** — 페이지 위에서 언제든 바로 제어 | **Floating widget** — control without leaving the page |
 | 5 | **타이머로 자동 종료** — 원하는 시간만큼만 스크롤 | **Auto-stop timer** — set it and forget it |
+| 6 | **정주행 모드** — 다음 화로 넘어가도 스크롤 계속 | **Series Mode** — keeps scrolling to the next page |
 
 ---
 
