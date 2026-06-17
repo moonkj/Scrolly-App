@@ -1,5 +1,17 @@
 # AutoWebScroller – 버그 수정 기록
 
+## 2026-06-17 (v1.0.7 build 3 — App Store Connect 업로드)
+
+### App Store Connect
+- v1.0.7 build 3 업로드 완료 (Upload succeeded)
+
+### 포함 변경 (build 2 이후)
+- 이중 RAF 루프 수정 (멈춤 안 됨 + 버튼 불일치) — 세대 토큰
+- 스크롤 끊김 제거 (forced reflow 제거 + 서브픽셀 누적, 선형 모드 저속)
+- 미니 컨트롤 idle 반투명 (4초 미조작 시 opacity 0.4, 터치 시 복귀)
+
+---
+
 ## 2026-06-17 (긴급 버그 수정 — 이중 RAF 루프)
 
 ### 사용자 보고
