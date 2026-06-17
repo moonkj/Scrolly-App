@@ -207,6 +207,7 @@ body {
 .feature-icon-wrap.red    { background: #8B1F1F; }
 .feature-icon-wrap.purple { background: #6B2FA0; }
 .feature-icon-wrap.slate  { background: #2B4B6B; }
+.feature-icon-wrap.teal   { background: #1E6B5C; }
 
 .feature-text {
   display: flex;
