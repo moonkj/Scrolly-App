@@ -14,7 +14,7 @@
 | **플랫폼** | iOS 16.4+ (iPhone, iPad) |
 | **가격** | 유료 (또는 Freemium 검토) |
 | **연령 등급** | 4+ |
-| **지원 언어** | 한국어, English, 日本語, 中文, Français, Español |
+| **지원 언어** | 한국어, English, 日本語, 中文, Français, हिन्दी (앱 UI 기준) |
 
 ---
 
@@ -135,7 +135,7 @@ Scrolly는 Safari용 자동 스크롤 확장 프로그램입니다.
   레시피나 악보를 읽을 때 화면을 계속 터치할 필요 없음.
 
 🌍 6개 언어 지원
-  한국어 · English · 日本語 · 中文 · Français · Español
+  한국어 · English · 日本語 · 中文 · Français · 힌디어
 
 ─── 사용 방법 ──────────────────────────
 
@@ -214,7 +214,7 @@ Scrolly smoothly scrolls any webpage in Safari — automatically.
   - the display lit while following a recipe or sheet music.
 
 * 6 Languages
-  Korean · English · Japanese · Chinese · French · Spanish
+  Korean · English · Japanese · Chinese · French · Hindi
 
 * HOW TO USE 
 1. After installing, go to Settings → Safari → Extensions → enable Scrolly
@@ -284,7 +284,7 @@ Safari のどんなウェブページも Scrolly が自動的にスクロール�
   レシピや楽譜を見るときに画面を常にタップする必要がなくなります。
 
 * 6ヶ国語対応
-  韓国語 · English · 日本語 · 中文 · Français · Español
+  韓国語 · English · 日本語 · 中文 · Français · ヒンディー語
 
 * 使い方
 1. インストール後、設定 → Safari → 機能拡張 → Scrolly を有効化
@@ -354,7 +354,7 @@ Scrolly 都能自动滚动 Safari 中的任何网页。
   查看食谱或乐谱时无需不断触碰屏幕保持亮屏。
 
 * 支持6种语言
-  韩语 · 英语 · 日语 · 中文 · 法语 · 西班牙语
+  韩语 · 英语 · 日语 · 中文 · 法语 · 印地语
 
 * 使用方法
 1. 安装后，前往设置 → Safari → 扩展程序 → 启用 Scrolly
@@ -425,7 +425,7 @@ Scrolly fait défiler automatiquement n'importe quelle page web dans Safari.
   Fini de taper pour garder l'affichage actif en suivant une recette ou une partition.
 
 * 6 langues supportées
-  Coréen · Anglais · Japonais · Chinois · Français · Espagnol
+  Coréen · Anglais · Japonais · Chinois · Français · Hindi
 
 * COMMENT UTILISER
 1. Après installation, allez dans Réglages → Safari → Extensions → Activer Scrolly
@@ -496,7 +496,7 @@ Scrolly desplaza automáticamente cualquier página web en Safari.
   Ya no necesitas tocarla para mantenerla activa al seguir una receta o partitura.
 
 * 6 idiomas
-  Coreano · Inglés · Japonés · Chino · Francés · Español
+  Coreano · Inglés · Japonés · Chino · Francés · Hindi
 
 * CÓMO USAR
 1. Tras instalar, ve a Ajustes → Safari → Extensiones → Activar Scrolly
@@ -567,7 +567,7 @@ Scrolly Safari में किसी भी वेबपेज को अपन
   रेसिपी या शीट म्यूज़िक देखते समय बार-बार टैप करने की जरूरत नहीं।
 
 * 6 भाषाएं
-  Korean · English · Japanese · Chinese · French · Spanish
+  Korean · English · Japanese · Chinese · French · Hindi
 
 * उपयोग कैसे करें
 1. इंस्टॉल करने के बाद, Settings → Safari → Extensions → Scrolly सक्षम करें
@@ -687,7 +687,7 @@ En:
 Ko:
 • Safari Web Extension API 전환 (더 빠르고 안정적)
 • 플로팅 위젯 드래그 위치 저장 기능
-• 6개 언어 지원 (한/영/일/중/불/서)
+• 6개 언어 지원 (한/영/일/중/불/힌)
 
 En:
 • Migrated to Safari Web Extension API
