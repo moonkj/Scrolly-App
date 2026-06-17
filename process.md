@@ -1,5 +1,21 @@
 # AutoWebScroller – 버그 수정 기록
 
+## 2026-06-17 (v1.0.7 build 1 — App Store Connect 업로드)
+
+### App Store Connect
+- v1.0.7 build 1 업로드 완료 (Upload succeeded)
+
+### 포함 변경
+- 팀 에이전트 코드 리뷰 라운드의 정주행 모드 엣지 버그 수정(D1~D3, C2) 반영
+  - D1: 타이머 만료로 멈춘 스크롤이 다음 페이지에서 부활하던 문제
+  - D2: 연속 navigate 시 setTimeout 중복 예약 방지
+  - D3: bfcache 복원 시 stale intent로 의도치 않은 재개
+  - D5/C2: stale autoPause 타이머 정리, 매직넘버 상수화
+- App Store 설명(document.md) 정주행 모드 등 누락 기능 7개 언어 반영 + 언어 표기 정정
+- 테스트 159개 전부 통과
+
+---
+
 ## 2026-06-17 (v1.0.6 — 팀 에이전트 전체 코드 리뷰 라운드)
 
 ### 4팀원 병렬 리뷰 (Tmux + 과학적 토론)
