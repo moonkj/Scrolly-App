@@ -42,6 +42,7 @@
   let widgetCollapsed     = false;
   let cachedWidgetPos     = null;  // global position loaded from browser.storage.local (cross-site)
   let darkModeListener    = null;  // stored ref to prevent duplicate matchMedia listeners
+  let widgetIdleTimer = null;   // fades widget to translucent after WIDGET_IDLE_MS idle
   let isDragging      = false;
   let dragMoved       = false;
   let dragStartX      = 0, dragStartY  = 0;
@@ -87,6 +88,11 @@
   let lastScrollPos = -1;
   let stuckFrames   = 0;
   let scrollStartedAt = 0; // timestamp of last startScroll — explicit end check grace period
+  // Sub-pixel carry: at slow speeds (esp. linear mode) the per-frame delta is a fraction
+  // of a pixel; passing fractional values to scrollBy makes iOS round inconsistently each
+  // frame → visible micro-stutter. We accumulate the fraction and scroll whole pixels,
+  // carrying the remainder to the next frame for a smooth, even pace.
+  let scrollAccumulator = 0;
 
   // ─── Tunable Constants ────────────────────────────────────────────────────────
   const STUCK_FRAMES_THRESHOLD       = 180;   // ~3s @ 60fps — auto-stop after sustained no movement
@@ -102,6 +108,8 @@
   const SCROLL_LOOP_EDGE_TOLERANCE   = 2;     // px tolerance for "at edge" detection
   const SERIES_INTENT_KEY            = 'aws_series_intent'; // cross-page series mode intent
   const SERIES_INTENT_TTL_MS         = 30000; // intent valid for 30s after page unload
+  const WIDGET_IDLE_MS               = 4000;  // fade widget to translucent after 4s of no interaction
+  const WIDGET_IDLE_OPACITY          = '0.4'; // translucent opacity once idle (page shows through)
 
   // ─── Wake Lock ────────────────────────────────────────────────────────────────
 
@@ -322,32 +330,45 @@
     const stRoot     = scrollTarget === document.documentElement;
     const beforePos  = stRoot ? window.scrollY : scrollTarget.scrollTop;
 
-    // Explicit end-of-page check (loop disabled): stop the moment we hit the bottom
-    // (or top) instead of relying solely on stuck detection.
-    //
-    // Grace period: skip the check for the first 300ms after startScroll. This protects
-    // against false-positive stops when the user starts on a page that's already at the
-    // end (the reposition in startScroll may not have taken effect yet — iOS Safari may
-    // delay window.scrollTo updates until the next layout pass).
-    if (!settings.loop && Date.now() - scrollStartedAt > 300) {
-      const cliH = stRoot ? window.innerHeight : scrollTarget.clientHeight;
-      const scrH = scrollTarget.scrollHeight;
-      if (settings.direction === 'down' && beforePos + cliH >= scrH - SCROLL_LOOP_EDGE_TOLERANCE && scrH > cliH + STUCK_VIEWPORT_PADDING_PX) {
-        if (settings.seriesMode) seriesResumeIntent = true;
-        stopScroll();
-        return;
-      }
-      if (settings.direction === 'up' && beforePos <= SCROLL_LOOP_EDGE_TOLERANCE && scrH > cliH + STUCK_VIEWPORT_PADDING_PX) {
-        if (settings.seriesMode) seriesResumeIntent = true;
-        stopScroll();
-        return;
+    // Smoothness: for the non-loop path, read scrollHeight/clientHeight ONCE here,
+    // BEFORE the scrollBy write. These don't change as a result of scrolling, so reading
+    // them again after the write (as the old stuck-detection block did) forced a
+    // synchronous reflow every single frame — the cause of the micro-stutter. We reuse
+    // the same two reads for both the end-of-page check and stuck detection, so the frame
+    // becomes read → write → (no further layout read).
+    let cliH = 0, scrH = 0;
+    if (!settings.loop) {
+      cliH = stRoot ? window.innerHeight : scrollTarget.clientHeight;
+      scrH = scrollTarget.scrollHeight;
+
+      // Explicit end-of-page check — stop the moment we hit the bottom (or top).
+      // Grace period: skip the first 300ms after startScroll so a page that begins at the
+      // end (before iOS applies the reposition) doesn't false-stop on frame one.
+      if (Date.now() - scrollStartedAt > 300 && scrH > cliH + STUCK_VIEWPORT_PADDING_PX) {
+        if (settings.direction === 'down' && beforePos + cliH >= scrH - SCROLL_LOOP_EDGE_TOLERANCE) {
+          if (settings.seriesMode) seriesResumeIntent = true;
+          stopScroll();
+          return;
+        }
+        if (settings.direction === 'up' && beforePos <= SCROLL_LOOP_EDGE_TOLERANCE) {
+          if (settings.seriesMode) seriesResumeIntent = true;
+          stopScroll();
+          return;
+        }
       }
     }
 
-    // scrollBy: relative write, no implicit layout read (unlike scrollTop +=)
-    scrollTarget.scrollBy(0, delta);
+    // scrollBy: relative write, no implicit layout read (unlike scrollTop +=).
+    // Sub-pixel carry: accumulate the fractional delta and scroll only whole pixels,
+    // keeping the remainder for next frame. Smooths out slow (linear-mode) scrolling.
+    scrollAccumulator += delta;
+    const stepPx = Math.trunc(scrollAccumulator);
+    scrollAccumulator -= stepPx;
+    scrollTarget.scrollBy(0, stepPx);
 
     if (settings.loop) {
+      // Loop must read the post-scroll position to detect the edge — this reflow is
+      // unavoidable but only happens in loop mode (opt-in).
       const st = scrollTarget;
       const isRoot     = st === document.documentElement;
       const scrollTop  = isRoot ? window.scrollY    : st.scrollTop;
@@ -360,28 +381,21 @@
         isRoot ? window.scrollTo(0, scrollH) : (st.scrollTop = scrollH);
         lastScrollPos = -1; stuckFrames = 0;
       }
-    } else {
-      // Stuck detection: only when loop is disabled AND the page is meaningfully scrollable.
-      // If the page has no scrollable content (scrollHeight ≈ viewport), we skip the
-      // detection — otherwise tests/jsdom and "no-scroll" pages would falsely trigger stop.
-      // If the page IS scrollable and we've been stuck at the same position for
-      // STUCK_FRAMES_THRESHOLD frames (~3s @ 60fps), we treat it as end-of-page and stop.
-      // This prevents the apparent "auto-restart" behavior on infinite-scroll pages
-      // where lazy-loaded content makes scrollBy resume after reaching the bottom.
-      const totalH = stRoot ? document.documentElement.scrollHeight : scrollTarget.scrollHeight;
-      const viewH  = stRoot ? window.innerHeight                     : scrollTarget.clientHeight;
-      if (totalH > viewH + STUCK_VIEWPORT_PADDING_PX) {
-        if (beforePos === lastScrollPos) {
-          stuckFrames++;
-          if (stuckFrames >= STUCK_FRAMES_THRESHOLD) {
-            if (settings.seriesMode) seriesResumeIntent = true;
-            stopScroll();
-            return;
-          }
-        } else {
-          stuckFrames   = 0;
-          lastScrollPos = beforePos;
+    } else if (scrH > cliH + STUCK_VIEWPORT_PADDING_PX) {
+      // Stuck detection (reuses the pre-scroll cliH/scrH — no post-write reflow):
+      // if we've been stuck at the same position for STUCK_FRAMES_THRESHOLD frames (~3s),
+      // treat it as end-of-page and stop. Prevents the apparent "auto-restart" on
+      // infinite-scroll pages where lazy-loaded content makes scrollBy resume after bottom.
+      if (beforePos === lastScrollPos) {
+        stuckFrames++;
+        if (stuckFrames >= STUCK_FRAMES_THRESHOLD) {
+          if (settings.seriesMode) seriesResumeIntent = true;
+          stopScroll();
+          return;
         }
+      } else {
+        stuckFrames   = 0;
+        lastScrollPos = beforePos;
       }
     }
 
@@ -413,6 +427,7 @@
     scrollTargetTimer  = 0;
     lastScrollPos      = -1;
     stuckFrames        = 0;
+    scrollAccumulator  = 0;          // reset sub-pixel carry on (re)start
     scrollStartedAt    = Date.now(); // grace period anchor for explicit end-of-page check
     scrollTarget       = getScrollTarget();
     // Hint to browser compositor to pre-render scroll tiles
@@ -752,6 +767,9 @@
       widget.style.width = isHoriz ? 'auto' : '44px';
     }
 
+    // Smooth opacity fade for the idle-translucency behavior.
+    widget.style.transition = 'opacity 0.5s ease';
+
     document.body.appendChild(widget);
 
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
@@ -761,6 +779,11 @@
     // Remove before re-adding to prevent duplicate resize listeners on SPA re-create
     window.removeEventListener('resize', _onResizeClamp);
     window.addEventListener('resize', _onResizeClamp);
+
+    // Idle fade: wake on any touch within the widget (capture so it fires even though
+    // inner controls stopPropagation), and start the initial idle countdown.
+    widget.addEventListener('touchstart', _wakeWidget, true);
+    _wakeWidget();
 
     // Connect keepalive port (only on first creation, not SPA re-creates)
     // When extension is disabled, the port disconnects → widget is removed
@@ -794,6 +817,18 @@
     if (colBtn) colBtn.style.color = dark ? '#fff' : '#1C1C1E';
   }
 
+  // Idle fade: the widget is fully opaque right after any interaction, then fades to
+  // translucent (page shows through) after WIDGET_IDLE_MS so it stops blocking content.
+  // Any touch on the widget wakes it back to full opacity.
+  function _wakeWidget() {
+    if (!widget) return;
+    widget.style.opacity = '1';
+    clearTimeout(widgetIdleTimer);
+    widgetIdleTimer = setTimeout(() => {
+      if (widget && !isDragging) widget.style.opacity = WIDGET_IDLE_OPACITY;
+    }, WIDGET_IDLE_MS);
+  }
+
   function _applyWidgetCollapsedState() {
     if (!widget) return;
     const sliderWrap = document.getElementById('__aws_slider_wrap__');
@@ -820,6 +855,7 @@
   function updateWidgetUI() {
     _styleWidgetPlayBtn(null);
     if (!widget) return;
+    _wakeWidget(); // play/stop/speed change is an interaction — wake to full opacity
     const sl = widget.querySelector('input[type=range]');
     const lb = widget.querySelector('#__aws_speed_label__');
     if (sl) sl.value = String(settings.speed);
@@ -851,6 +887,7 @@
 
   function onWidgetDragStart(e) {
     e.preventDefault();
+    _wakeWidget();
     isDragging = true; dragMoved = false;
     const t = e.touches[0];
     dragStartX = t.clientX; dragStartY = t.clientY;
@@ -875,7 +912,8 @@
   function onWidgetDragEnd() {
     if (!isDragging) return;
     isDragging = false;
-    widget.style.transition = '';
+    widget.style.transition = 'opacity 0.5s ease'; // restore idle-fade transition
+    _wakeWidget(); // restart idle countdown after the drag
     if (dragMoved) {
       const pos = { x: parseFloat(widget.style.left), y: parseFloat(widget.style.top) };
       try { localStorage.setItem(WIDGET_POS_KEY, JSON.stringify(pos)); } catch (_) {}

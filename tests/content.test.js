@@ -161,6 +161,9 @@ describe('speedToPps — quadratic speed curve', () => {
   // doScroll caps dt at 50ms. Run frame ts=0 (establishes lastRafTime, dt=0)
   // then 20 frames at 50ms intervals → total elapsed = 1000ms.
   // Per-frame delta = speed²*9 * (50/1000). Total = speed²*9.
+  // NOTE: sub-pixel carry means scrollBy receives whole pixels only, so the measured
+  // total is the integer part of the true distance — i.e. within [expected-1, expected]
+  // (a fractional remainder ≤1px is still held in the accumulator at measurement time).
   function measureDelta(listener, speed, direction = 'down') {
     sendMsg(listener, 'updateSettings', { speed, direction });
     document.documentElement.scrollBy = jest.fn();
@@ -171,19 +174,25 @@ describe('speedToPps — quadratic speed curve', () => {
       .reduce((sum, args) => sum + args[1], 0);
   }
 
+  // Whole-pixel total: floor of the true distance, never more than 1px short.
+  function expectAboutPx(actual, expected) {
+    expect(actual).toBeGreaterThanOrEqual(expected - 1);
+    expect(actual).toBeLessThanOrEqual(expected);
+  }
+
   test('speed=1 → ~9 px/s', () => {
     const listener = loadContent();
-    expect(measureDelta(listener, 1)).toBeCloseTo(9, 0);
+    expectAboutPx(measureDelta(listener, 1), 9);
   });
 
   test('speed=5 → ~225 px/s', () => {
     const listener = loadContent();
-    expect(measureDelta(listener, 5)).toBeCloseTo(225, 0);
+    expectAboutPx(measureDelta(listener, 5), 225);
   });
 
   test('speed=10 → ~900 px/s', () => {
     const listener = loadContent();
-    expect(measureDelta(listener, 10)).toBeCloseTo(900, 0);
+    expectAboutPx(measureDelta(listener, 10), 900);
   });
 
   test('direction=up → negative delta', () => {
