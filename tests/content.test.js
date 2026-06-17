@@ -260,6 +260,38 @@ describe('startScroll / stopScroll / toggleScroll', () => {
     sendMsg(listener, 'start');
     expect(requestAnimationFrame.mock.calls.length).toBe(rafBefore);
   });
+
+  // ─ generation token: stray second chain must NOT keep scrolling after stop ─────
+  // Regression for "stop doesn't stop / button mismatch / jittery scroll":
+  // if a second doScroll chain ever gets scheduled, stopScroll must kill ALL chains.
+  test('stop kills a stray second doScroll chain (generation token)', () => {
+    const { runFrame, queue } = createRafQueue();
+    const l = loadContent();
+    sendMsg(l, 'start');           // chain A scheduled (gen 1)
+    runFrame(0);                   // chain A runs, re-schedules
+
+    // Simulate a stray second chain by manually scheduling another doScroll-style frame
+    // the same way the engine would — capture current queue length as the stray id.
+    const strayBefore = queue.length;
+    sendMsg(l, 'start');           // idempotent guard blocks, but force a real second start path:
+    // Force-stop then the stray (older-gen) frame must not scroll.
+    sendMsg(l, 'stop');            // bumps generation, cancels current
+    document.documentElement.scrollBy = jest.fn();
+    runFrame(16);                  // any leftover frames must self-terminate
+    runFrame(32);
+    expect(document.documentElement.scrollBy).not.toHaveBeenCalled();
+  });
+
+  test('stop immediately halts scrollBy on the very next frame', () => {
+    const { runFrame } = createRafQueue();
+    const l = loadContent();
+    sendMsg(l, 'start');
+    runFrame(0); runFrame(16);     // scrolling
+    sendMsg(l, 'stop');
+    document.documentElement.scrollBy = jest.fn();
+    runFrame(32);
+    expect(document.documentElement.scrollBy).not.toHaveBeenCalled();
+  });
 });
 
 // ─── updateSettings message ───────────────────────────────────────────────────

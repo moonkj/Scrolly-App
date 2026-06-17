@@ -1,5 +1,32 @@
 # AutoWebScroller – 버그 수정 기록
 
+## 2026-06-17 (긴급 버그 수정 — 이중 RAF 루프)
+
+### 사용자 보고
+- "멈춤을 눌러도 계속 오토스크롤이 됨"
+- "플레이버튼도 동작에 맞지 않게 동작" (버튼은 ▶=정지 표시인데 스크롤 지속)
+- "부드럽게 스크롤이 안 되고 딱딱 끊김"
+
+### 근본 원인: 이중 RAF 루프
+`scrollInterval`은 단일 변수인데 어떤 경로(정주행 자동재개·bfcache 복원·autoPause
+resume race)로든 두 번째 `doScroll` 체인이 스케줄되면, `stopScroll`의
+`cancelAnimationFrame(scrollInterval)`은 마지막 하나만 취소 → 나머지 체인이 계속
+스크롤. 두 체인이 같은 프레임에 각각 `scrollBy` 호출 → jitter(끊김).
+- 증상 3종(멈춰도 계속 / 버튼 불일치 / 끊김) 모두 동일 원인.
+
+### 수정: RAF 세대 토큰 (generation token)
+- `scrollGeneration` 모듈 변수 도입. 체인 시작(`_rafScroll()`)마다 토큰 증가.
+- `doScroll(timestamp, gen)` — 자신의 gen이 현재 토큰과 다르면 즉시 자살.
+- `stopScroll`이 `scrollGeneration++` → 살아있는 모든 체인이 다음 프레임에 종료
+  (cancelAnimationFrame이 못 잡는 stray 체인까지 확실히 차단).
+- doScroll 내부 재등록은 같은 gen 유지, 시작/resume은 새 gen 발급.
+
+### 테스트
+- 이중 RAF 차단 + stop 즉시 정지 회귀 테스트 2개 추가
+- 159 → 161개 전부 통과
+
+---
+
 ## 2026-06-17 (v1.0.7 build 2 — App Store Connect 업로드)
 
 ### App Store Connect

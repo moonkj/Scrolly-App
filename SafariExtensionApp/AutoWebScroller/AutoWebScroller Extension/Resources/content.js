@@ -58,6 +58,14 @@
   let navigateTimer   = null;
   let pendingResume   = false;
 
+  // RAF generation token. Every scroll-loop start bumps this; each doScroll frame
+  // carries the generation it was scheduled under and self-terminates when it no
+  // longer matches. This guarantees only ONE doScroll chain is ever alive — even if
+  // a stray second chain gets scheduled (bfcache restore, series auto-resume race,
+  // autoPause resume race), stopScroll bumps the token and every live chain dies on
+  // its next frame. Fixes "stop doesn't stop / button mismatch / jittery scroll".
+  let scrollGeneration = 0;
+
   // Wake Lock
   let wakeLock = null;
 
@@ -243,8 +251,16 @@
     return settings.speedMode === 'linear' ? s * 20 : s * s * 9;
   }
 
-  function doScroll(timestamp) {
-    if (!isScrolling) return;
+  // Schedule the next doScroll frame under a fresh generation token. All scroll-loop
+  // (re)starts go through here so the generation is managed in one place.
+  function _rafScroll() {
+    const gen = ++scrollGeneration;
+    return requestAnimationFrame((ts) => doScroll(ts, gen));
+  }
+
+  function doScroll(timestamp, gen) {
+    // Terminate if scrolling stopped OR this frame belongs to a superseded chain.
+    if (!isScrolling || gen !== scrollGeneration) return;
 
     // SPA self-heal: throttled to avoid per-frame getElementById
     if (settings.showWidget && ++spaCheckTimer >= SPA_CHECK_FRAMES) {
@@ -281,7 +297,7 @@
           lastRafTime    = null;
           lastScrollPos  = -1;
           stuckFrames    = 0;
-          scrollInterval = requestAnimationFrame(doScroll);
+          scrollInterval = requestAnimationFrame((ts) => doScroll(ts, gen));
           return;
         }
       }
@@ -369,7 +385,7 @@
       }
     }
 
-    scrollInterval = requestAnimationFrame(doScroll);
+    scrollInterval = requestAnimationFrame((ts) => doScroll(ts, gen));
   }
 
   // ─── Start / Stop / Toggle ────────────────────────────────────────────────────
@@ -423,7 +439,7 @@
         }
       } catch (_) {} // jsdom doesn't implement window.scrollTo
     }
-    scrollInterval = requestAnimationFrame(doScroll);
+    scrollInterval = _rafScroll();
     if (settings.timerMins > 0) {
       timerTimeout = setTimeout(onTimerExpired, settings.timerMins * 60 * 1000);
     }
@@ -436,6 +452,9 @@
     if (!isScrolling) return;
     isScrolling  = false;
     lastRafTime  = null;
+    // Bump generation so ANY live doScroll chain (including a stray second one that
+    // cancelAnimationFrame below can't reach) self-terminates on its next frame.
+    scrollGeneration++;
     cancelAnimationFrame(scrollInterval); scrollInterval = null;
     clearTimeout(timerTimeout);           timerTimeout   = null;
     clearTimeout(userScrollTimer);        userScrollTimer = null;
@@ -491,7 +510,7 @@
     clearTimeout(userScrollTimer);
     userScrollTimer = setTimeout(() => {
       userScrolling = false;
-      if (isScrolling && scrollInterval === null) scrollInterval = requestAnimationFrame(doScroll);
+      if (isScrolling && scrollInterval === null) scrollInterval = _rafScroll();
     }, AUTOPAUSE_RESUME_DELAY_MS);
   }
 
@@ -511,7 +530,7 @@
       clearTimeout(userScrollTimer);
       userScrollTimer = setTimeout(() => {
         userScrolling = false;
-        if (isScrolling && scrollInterval === null) scrollInterval = requestAnimationFrame(doScroll);
+        if (isScrolling && scrollInterval === null) scrollInterval = _rafScroll();
       }, AUTOPAUSE_RESUME_DELAY_MS);
     }
     if (isDragging) onWidgetDragEnd(e);
@@ -909,7 +928,7 @@
           userScrolling = false;
           clearTimeout(userScrollTimer);
           // If the RAF loop was paused (autoPause), restart it now
-          if (isScrolling && scrollInterval === null) scrollInterval = requestAnimationFrame(doScroll);
+          if (isScrolling && scrollInterval === null) scrollInterval = _rafScroll();
           // Pre-position scroll to the correct edge so loop doesn't look like wrong direction
           if (settings.loop && isScrolling && scrollTarget) {
             const st     = scrollTarget;
